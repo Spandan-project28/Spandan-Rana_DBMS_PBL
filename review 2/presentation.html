@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Reservation DBMS — Review 2: Integrity, DDL, Queries & Prototype</title>
+    <!-- Modern Google Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Cinzel:wght@600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            /* Warm Brown, Off-White, Crimson & Cognac Palette */
+            --bg-deep: #0D0A08;
+            --bg-surface: #17120F;
+            --bg-card: rgba(28, 21, 18, 0.78);
+            --bg-card-hover: rgba(38, 29, 24, 0.92);
+            --border-warm: rgba(217, 140, 85, 0.22);
+            --border-warm-bright: rgba(217, 140, 85, 0.55);
+            --border-crimson: rgba(225, 29, 72, 0.35);
+
+            /* Primary Accents */
+            --primary-cognac: #D97736;
+            --primary-glow: rgba(217, 119, 54, 0.38);
+            --secondary-amber: #F59E0B;
+            --crimson-red: #E11D48;
+            --crimson-glow: rgba(225, 29, 72, 0.4);
+            --ruby-light: #FDA4AF;
+            --emerald-green: #10B981;
+
+            /* Text Tokens */
+            --text-offwhite: #FDFBF7;
+            --text-warm-light: #EFE8E1;
+            --text-secondary: #C7BDB5;
+            --text-muted: #8C7D73;
+            --text-dark-brown: #38271E;
+
+            /* Glass & Elevation */
+            --glass-bg: rgba(23, 17, 14, 0.72);
+            --glass-border: rgba(245, 239, 235, 0.08);
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-offwhite);
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glowing Background Orbs in Warm Brown & Crimson */
+        .bg-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(140px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.42;
+            transition: all 1s ease;
+        }
+
+        .glow-1 {
+            top: -12%;
+            left: -8%;
+            width: 550px;
+            height: 550px;
+            background: radial-gradient(circle, #8C3A16 0%, transparent 70%);
+        }
+
+        .glow-2 {
+            bottom: -15%;
+            right: -6%;
+            width: 650px;
+            height: 650px;
+            background: radial-gradient(circle, #9F1239 0%, transparent 70%);
+        }
+
+        .glow-3 {
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 750px;
+            height: 750px;
+            background: radial-gradient(circle, #451A03 0%, transparent 75%);
+            opacity: 0.28;
+        }
+
+        /* Top Header & Navigation */
+        .top-nav {
+            position: fixed;
+            top: 18px;
+            left: 36px;
+            right: 36px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .project-badge {
+            pointer-events: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(28, 20, 16, 0.8);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--border-warm);
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--text-warm-light);
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .project-badge .badge-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: var(--crimson-red);
+            box-shadow: 0 0 10px var(--crimson-red);
+            animation: pulse-dot 2.2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        .top-actions {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: rgba(28, 20, 16, 0.8);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-warm);
+            color: var(--text-warm-light);
+            padding: 8px 15px;
+            border-radius: 50px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .header-btn:hover {
+            color: #FFFFFF;
+            border-color: var(--primary-cognac);
+            background: rgba(45, 30, 24, 0.95);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 18px var(--primary-glow);
+        }
+
+        .header-btn.btn-crimson:hover {
+            border-color: var(--crimson-red);
+            box-shadow: 0 4px 18px var(--crimson-glow);
+        }
+
+        /* Slide Deck Container */
+        .slide-deck {
+            position: relative;
+            width: 92vw;
+            max-width: 1440px;
+            height: 84vh;
+            max-height: 900px;
+            z-index: 10;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 35px 80px -15px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 248, 240, 0.12);
+            padding: 36px 46px;
+            opacity: 0;
+            transform: scale(0.96) translateY(24px);
+            transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: all;
+            z-index: 20;
+        }
+
+        /* Slide Header */
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid rgba(217, 140, 85, 0.18);
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+
+        .slide-title-group h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            background: linear-gradient(135deg, #FFFDFB 25%, #E5D5C8 70%, #D97736 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slide-title-group h2 i {
+            -webkit-text-fill-color: initial;
+            color: var(--crimson-red);
+            font-size: 1.5rem;
+        }
+
+        .slide-subtitle {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .slide-tag {
+            background: rgba(225, 29, 72, 0.14);
+            border: 1px solid var(--border-crimson);
+            color: var(--ruby-light);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .slide-tag.tag-amber {
+            background: rgba(217, 119, 54, 0.16);
+            border-color: var(--border-warm);
+            color: #FBD38D;
+        }
+
+        /* Content Body & Scrollbars */
+        .content-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .content-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .content-body::-webkit-scrollbar-thumb {
+            background: var(--border-warm);
+            border-radius: 4px;
+        }
+
+        /* Grids & Cards */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-warm);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(16px);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--crimson-red), var(--primary-cognac));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            background: var(--bg-card-hover);
+            border-color: var(--border-warm-bright);
+            box-shadow: 0 14px 28px -8px rgba(0, 0, 0, 0.6), 0 0 20px var(--primary-glow);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-offwhite);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        p {
+            font-size: 0.94rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+
+        /* Hero Slide 0 Special Styles */
+        .title-slide {
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .hero-icon-container {
+            width: 96px;
+            height: 96px;
+            border-radius: 28px;
+            background: linear-gradient(135deg, rgba(225, 29, 72, 0.25), rgba(217, 119, 54, 0.25));
+            border: 1px solid rgba(253, 251, 247, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.85rem;
+            color: #FDA4AF;
+            margin-bottom: 22px;
+            box-shadow: 0 16px 40px -6px rgba(225, 29, 72, 0.45);
+            animation: float-icon 4.2s ease-in-out infinite;
+        }
+
+        @keyframes float-icon {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .title-slide h1 {
+            font-size: 2.9rem;
+            font-weight: 800;
+            line-height: 1.18;
+            letter-spacing: -0.8px;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #F5E8DC 45%, #D97736 80%, #E11D48 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            max-width: 950px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-warm-light);
+            font-weight: 400;
+            margin-bottom: 26px;
+        }
+
+        .hero-pill-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+
+        .hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(253, 251, 247, 0.04);
+            border: 1px solid rgba(217, 140, 85, 0.3);
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: var(--text-offwhite);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-pill i {
+            color: var(--crimson-red);
+        }
+
+        .hero-footer-tip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 0.86rem;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .hero-footer-tip kbd {
+            background: rgba(253, 251, 247, 0.12);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-offwhite);
+        }
+
+        /* -------------------------------------------------------------
+           SLIDE 1: 3NF & FUNCTIONAL DEPENDENCIES
+        ------------------------------------------------------------- */
+        .fd-box {
+            background: rgba(18, 14, 12, 0.9);
+            border: 1px solid var(--border-warm);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
+
+        .fd-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--primary-cognac);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .fd-math {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: var(--text-warm-light);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--crimson-red);
+            line-height: 1.5;
+        }
+
+        .nf-badge-3 {
+            background: rgba(16, 185, 129, 0.18);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #6EE7B7;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        /* -------------------------------------------------------------
+           SLIDE 2: CONCISE DATA DICTIONARY EXPLORER
+        ------------------------------------------------------------- */
+        .dict-container {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 16px;
+            height: 100%;
+        }
+
+        .dict-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .dict-tab-btn {
+            background: rgba(28, 20, 16, 0.6);
+            border: 1px solid var(--border-warm);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            text-align: left;
+            font-size: 0.82rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dict-tab-btn:hover,
+        .dict-tab-btn.active {
+            background: rgba(217, 119, 54, 0.2);
+            border-color: var(--primary-cognac);
+            color: #FFFFFF;
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        .dict-display-card {
+            background: rgba(15, 11, 9, 0.95);
+            border: 1px solid var(--border-warm);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Custom Tables */
+        table.dict-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            margin-top: 10px;
+        }
+
+        table.dict-table th {
+            background: rgba(45, 30, 24, 0.8);
+            color: var(--text-warm-light);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.6px;
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-warm);
+        }
+
+        table.dict-table td {
+            padding: 8px 12px;
+            color: var(--text-warm-light);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        table.dict-table tr:hover td {
+            background: rgba(217, 119, 54, 0.08);
+        }
+
+        .type-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: #FCD34D;
+            background: rgba(245, 158, 11, 0.12);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .key-pill-pk {
+            background: rgba(225, 29, 72, 0.2);
+            color: #FDA4AF;
+            border: 1px solid rgba(225, 29, 72, 0.4);
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .key-pill-fk {
+            background: rgba(217, 119, 54, 0.2);
+            color: #FBD38D;
+            border: 1px solid rgba(217, 119, 54, 0.4);
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        /* -------------------------------------------------------------
+           SLIDE 3: INTEGRITY CONSTRAINTS & DDL ENFORCEMENT
+        ------------------------------------------------------------- */
+        .constraint-card {
+            background: rgba(24, 18, 15, 0.85);
+            border: 1px solid var(--border-warm);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .constraint-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+        }
+
+        .cb-red { background: rgba(225, 29, 72, 0.2); color: #FDA4AF; border: 1px solid rgba(225, 29, 72, 0.35); }
+        .cb-cognac { background: rgba(217, 119, 54, 0.2); color: #FCD34D; border: 1px solid rgba(217, 119, 54, 0.35); }
+        .cb-emerald { background: rgba(16, 185, 129, 0.2); color: #A7F3D0; border: 1px solid rgba(16, 185, 129, 0.35); }
+
+        .sql-snippet-box {
+            background: #080605;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.74rem;
+            color: #E2E8F0;
+            margin-top: 6px;
+            line-height: 1.4;
+            overflow-x: auto;
+        }
+
+        .sql-kw { color: #E11D48; font-weight: 700; }
+        .sql-fn { color: #D97736; font-weight: 600; }
+        .sql-str { color: #10B981; }
+        .sql-num { color: #F59E0B; }
+
+        /* -------------------------------------------------------------
+           SLIDE 4: 7 CORE SQL QUERIES & VIEWS RUNNER
+        ------------------------------------------------------------- */
+        .query-runner-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 16px;
+            height: 100%;
+        }
+
+        .query-list-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .query-tab-btn {
+            background: rgba(28, 20, 16, 0.6);
+            border: 1px solid var(--border-warm);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            text-align: left;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .query-tab-btn:hover,
+        .query-tab-btn.active {
+            background: rgba(225, 29, 72, 0.18);
+            border-color: var(--crimson-red);
+            color: #FFFFFF;
+            box-shadow: 0 0 12px var(--crimson-glow);
+        }
+
+        .query-sub-tag {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .query-main-panel {
+            background: rgba(14, 10, 8, 0.95);
+            border: 1px solid var(--border-warm);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            gap: 12px;
+        }
+
+        .query-explain-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(217, 119, 54, 0.1);
+            border: 1px solid var(--border-warm);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: var(--text-warm-light);
+        }
+
+        /* -------------------------------------------------------------
+           SLIDE 5: LIVE PROTOTYPE CONSOLE & INTERACTIVE SIMULATOR
+        ------------------------------------------------------------- */
+        .proto-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            height: 100%;
+        }
+
+        .proto-card {
+            background: rgba(20, 15, 12, 0.88);
+            border: 1px solid var(--border-warm);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .proto-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .proto-form-group label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .proto-input,
+        .proto-select {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-warm);
+            color: #FFFFFF;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.84rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .proto-input:focus,
+        .proto-select:focus {
+            border-color: var(--primary-cognac);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .proto-action-btn {
+            background: linear-gradient(135deg, var(--crimson-red), var(--primary-cognac));
+            border: none;
+            color: #FFFFFF;
+            font-weight: 700;
+            font-size: 0.84rem;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.25s;
+            box-shadow: 0 4px 15px var(--crimson-glow);
+        }
+
+        .proto-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--crimson-glow);
+        }
+
+        .proto-console-out {
+            background: #080605;
+            border: 1px solid var(--border-warm);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.76rem;
+            color: #6EE7B7;
+            flex: 1;
+            overflow-y: auto;
+            max-height: 230px;
+            line-height: 1.45;
+        }
+
+        /* -------------------------------------------------------------
+           SLIDE 6: SEGMENT CONCURRENCY VISUALIZER
+        ------------------------------------------------------------- */
+        .track-timeline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            margin: 20px 0 16px 0;
+            padding: 0 20px;
+        }
+
+        .track-timeline::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            right: 20px;
+            height: 4px;
+            background: #451A03;
+            z-index: 1;
+        }
+
+        .track-st-node {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary-cognac);
+            z-index: 2;
+            position: relative;
+            box-shadow: 0 0 10px var(--primary-glow);
+            border: 2px solid #FFFDFB;
+        }
+
+        .track-st-label {
+            position: absolute;
+            top: 22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+            color: var(--text-warm-light);
+        }
+
+        .seg-matrix-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .seg-seat-card {
+            background: rgba(28, 20, 16, 0.7);
+            border: 1px solid var(--border-warm);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        /* Bottom Controls Bar */
+        .bottom-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(24, 18, 14, 0.88);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-warm);
+            padding: 8px 22px;
+            border-radius: 50px;
+            z-index: 100;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+        }
+
+        .nav-btn {
+            background: rgba(253, 251, 247, 0.08);
+            border: 1px solid rgba(217, 140, 85, 0.3);
+            color: #FFFFFF;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--crimson-red);
+            border-color: var(--crimson-red);
+            transform: scale(1.08);
+            box-shadow: 0 0 15px var(--crimson-glow);
+        }
+
+        .slide-dots {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(253, 251, 247, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            width: 24px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--crimson-red), var(--primary-cognac));
+            box-shadow: 0 0 10px var(--crimson-glow);
+        }
+
+        .slide-counter {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-warm-light);
+            font-family: 'JetBrains Mono', monospace;
+            padding: 0 6px;
+        }
+
+        /* Presenter Pitch Drawer */
+        .pitch-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(18, 12, 10, 0.98);
+            backdrop-filter: blur(25px);
+            border-top: 1px solid var(--primary-cognac);
+            padding: 20px 40px;
+            transform: translateY(105%);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 200;
+            box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.8);
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .pitch-drawer.open {
+            transform: translateY(0);
+        }
+
+        .pitch-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .pitch-header h4 {
+            font-size: 1rem;
+            color: var(--primary-cognac);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pitch-text {
+            font-size: 0.95rem;
+            color: var(--text-warm-light);
+            line-height: 1.6;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.35s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Ambient Warm Orbs -->
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
+    <div class="bg-glow glow-3"></div>
+
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+        <div class="project-badge">
+            <span class="badge-dot"></span>
+            <span>DBMS Review 2 • Integrity Constraints, SQL Reports & Prototype</span>
+        </div>
+        <div class="top-actions">
+            <button class="header-btn btn-crimson" onclick="togglePitchDrawer()" title="Speaker Pitch Script">
+                <i class="fa-solid fa-microphone-lines"></i>
+                <span>Speaker Pitch</span>
+            </button>
+            <button class="header-btn" onclick="toggleFullScreen()" title="Toggle Fullscreen">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Slide Deck Container -->
+    <main class="slide-deck">
+
+        <!-- SLIDE 0: TITLE HERO -->
+        <section class="slide active title-slide" id="slide-0">
+            <div class="hero-icon-container">
+                <i class="fa-solid fa-train"></i>
+            </div>
+            <h1>Railway Ticket Reservation &<br>Journey Management System</h1>
+            <p class="hero-subtitle">Review 2: 3NF Functional Dependencies, Constraint DDL, Analytical Queries & Live Database Prototype</p>
+
+            <div class="hero-pill-group">
+                <div class="hero-pill"><i class="fa-solid fa-calculator"></i> 3NF Functional Dependencies</div>
+                <div class="hero-pill"><i class="fa-solid fa-book-atlas"></i> Concise Data Dictionary</div>
+                <div class="hero-pill"><i class="fa-solid fa-shield-halved"></i> Segment & Waitlist DDL Constraints</div>
+                <div class="hero-pill"><i class="fa-solid fa-chart-pie"></i> 7 Analytical SQL Reports & Views</div>
+                <div class="hero-pill"><i class="fa-solid fa-desktop"></i> Working Interactive Prototype</div>
+            </div>
+
+            <div class="hero-footer-tip">
+                <i class="fa-regular fa-keyboard"></i>
+                <span>Navigate with <kbd>←</kbd> <kbd>→</kbd> or Bottom Dock • Press <kbd>P</kbd> for Pitch Script</span>
+            </div>
+        </section>
+
+        <!-- SLIDE 1: 3NF NORMALIZATION & FUNCTIONAL DEPENDENCIES -->
+        <section class="slide" id="slide-1">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-square-root-variable"></i> 1. 3NF Mathematical Proof & Functional Dependencies</h2>
+                    <p class="slide-subtitle">Formal mathematical verification proving zero transitive dependencies across all 11 relations</p>
+                </div>
+                <span class="slide-tag tag-amber"><i class="fa-solid fa-check-double"></i> 3NF Verified</span>
+            </div>
+
+            <div class="content-body">
+                <div class="grid-2">
+                    <div class="card">
+                        <h3><i class="fa-solid fa-atom" style="color:var(--crimson-red);"></i> Core Fleet & Route Dependencies</h3>
+                        
+                        <div class="fd-box">
+                            <div class="fd-title"><span>TRAIN (TrainID, Name, Type)</span><span class="nf-badge-3">3NF</span></div>
+                            <div class="fd-math">
+                                • FD1: TrainID → Name, Type<br>
+                                • Candidate Key: {TrainID} (Every determinant is a Super Key).
+                            </div>
+                        </div>
+
+                        <div class="fd-box">
+                            <div class="fd-title"><span>STATION (StationID, Name, City)</span><span class="nf-badge-3">3NF</span></div>
+                            <div class="fd-math">
+                                • FD1: StationID → Name, City<br>
+                                • Candidate Key: {StationID} (No transitive dependencies).
+                            </div>
+                        </div>
+
+                        <div class="fd-box">
+                            <div class="fd-title"><span>ROUTE_STOP (RouteID, TrainID, StationID, StopSequence, ...)</span><span class="nf-badge-3">3NF</span></div>
+                            <div class="fd-math">
+                                • FD1: RouteID → TrainID, StationID, StopSequence, ArrivalTime, DepartureTime, Distance<br>
+                                • FD2: (TrainID, StopSequence) → RouteID (Alternative Super Key).
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-ticket" style="color:var(--primary-cognac);"></i> Booking, Segment & Queue Dependencies</h3>
+                        
+                        <div class="fd-box">
+                            <div class="fd-title"><span>BOOKING (PNRID, PassengerID, BookingDate, TotalFare, Status)</span><span class="nf-badge-3">3NF</span></div>
+                            <div class="fd-math">
+                                • FD1: PNRID → PassengerID, BookingDate, TotalFare, Status<br>
+                                • Zero non-prime attribute determines another non-prime attribute.
+                            </div>
+                        </div>
+
+                        <div class="fd-box">
+                            <div class="fd-title"><span>JOURNEY_SEGMENT (SegmentID, PNRID, ScheduleID, SeatID, ...)</span><span class="nf-badge-3">3NF</span></div>
+                            <div class="fd-math">
+                                • FD1: SegmentID → PNRID, ScheduleID, SourceRouteID, DestRouteID, SeatID, Status<br>
+                                • Solves multi-hop concurrency without composite table anomalies.
+                            </div>
+                        </div>
+
+                        <div class="fd-box">
+                            <div class="fd-title"><span>WAITLIST (WaitlistID, PNRID, ScheduleID, Position, Status)</span><span class="nf-badge-3">3NF</span></div>
+                            <div class="fd-math">
+                                • FD1: WaitlistID → PNRID, ScheduleID, Position, Status<br>
+                                • FD2: (ScheduleID, Position) → WaitlistID (Enforces unique queue ranking).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: CONCISE DATA DICTIONARY -->
+        <section class="slide" id="slide-2">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-book-bookmark"></i> 2. Concise Interactive Data Dictionary</h2>
+                    <p class="slide-subtitle">Schema definitions, data types, nullability, and primary/foreign key linkages</p>
+                </div>
+                <span class="slide-tag"><i class="fa-solid fa-table-list"></i> 11 Entity Dictionaries</span>
+            </div>
+
+            <div class="content-body">
+                <div class="dict-container">
+                    <div class="dict-nav" id="dictNav">
+                        <button class="dict-tab-btn active" onclick="showDictTable('Train')"><span><i class="fa-solid fa-train"></i> Train</span><span class="type-pill">3 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Station')"><span><i class="fa-solid fa-building"></i> Station</span><span class="type-pill">3 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Route_Stop')"><span><i class="fa-solid fa-route"></i> Route_Stop</span><span class="type-pill">7 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Schedule')"><span><i class="fa-solid fa-calendar-days"></i> Schedule</span><span class="type-pill">3 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Coach')"><span><i class="fa-solid fa-couch"></i> Coach</span><span class="type-pill">4 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Seat')"><span><i class="fa-solid fa-chair"></i> Seat</span><span class="type-pill">4 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Passenger')"><span><i class="fa-solid fa-users"></i> Passenger</span><span class="type-pill">5 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Booking')"><span><i class="fa-solid fa-ticket"></i> Booking</span><span class="type-pill">5 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Journey_Segment')"><span><i class="fa-solid fa-code-fork"></i> Journey_Segment</span><span class="type-pill">7 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Waitlist')"><span><i class="fa-solid fa-hourglass-half"></i> Waitlist</span><span class="type-pill">5 cols</span></button>
+                        <button class="dict-tab-btn" onclick="showDictTable('Payment')"><span><i class="fa-solid fa-credit-card"></i> Payment</span><span class="type-pill">5 cols</span></button>
+                    </div>
+
+                    <div class="dict-display-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-warm); padding-bottom:8px;">
+                            <h3 id="dictTableName" style="color:var(--primary-cognac);"><i class="fa-solid fa-train"></i> TRAIN</h3>
+                            <span id="dictTableDesc" style="font-size:0.8rem; color:var(--text-secondary);">Master registry of locomotives and train routes.</span>
+                        </div>
+                        <div id="dictTableContent" style="flex:1; overflow-y:auto;">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 3: INTEGRITY CONSTRAINTS & DDL ENFORCEMENT -->
+        <section class="slide" id="slide-3">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-shield-check"></i> 3. Advanced DDL Scripts & Integrity Constraints</h2>
+                    <p class="slide-subtitle">Enforcing zero segment collisions, non-negative fares, chronological sequences, and queue uniqueness</p>
+                </div>
+                <span class="slide-tag tag-amber"><i class="fa-solid fa-lock"></i> Business Integrity</span>
+            </div>
+
+            <div class="content-body">
+                <div class="grid-2">
+                    <div class="constraint-card">
+                        <div>
+                            <span class="constraint-badge cb-red"><i class="fa-solid fa-triangle-exclamation"></i> Business Rule 1</span>
+                            <h3>No Overlapping Seat Segments</h3>
+                            <p style="font-size:0.84rem;">Enforces that a single physical seat cannot be double-booked across overlapping stop sequences on the same train journey.</p>
+                        </div>
+                        <div class="sql-snippet-box">
+<span class="sql-kw">CREATE TRIGGER</span> trg_check_segment_overlap
+<span class="sql-kw">BEFORE INSERT ON</span> Journey_Segment
+<span class="sql-kw">FOR EACH ROW BEGIN</span>
+  <span class="sql-kw">IF EXISTS</span> (
+    <span class="sql-kw">SELECT</span> 1 <span class="sql-kw">FROM</span> Journey_Segment s
+    <span class="sql-kw">JOIN</span> Route_Stop r1 <span class="sql-kw">ON</span> s.SourceRouteID = r1.RouteID
+    <span class="sql-kw">JOIN</span> Route_Stop r2 <span class="sql-kw">ON</span> s.DestRouteID = r2.RouteID
+    <span class="sql-kw">WHERE</span> s.SeatID = NEW.SeatID <span class="sql-kw">AND</span> s.ScheduleID = NEW.ScheduleID
+    <span class="sql-kw">AND</span> s.Status = <span class="sql-str">'CONFIRMED'</span>
+    <span class="sql-kw">AND NOT</span> (NEW_Dest_Seq &lt;= r1.StopSequence <span class="sql-kw">OR</span> NEW_Src_Seq &gt;= r2.StopSequence)
+  ) <span class="sql-kw">THEN</span>
+    <span class="sql-kw">SIGNAL SQLSTATE</span> <span class="sql-str">'45000'</span> <span class="sql-kw">SET MESSAGE_TEXT</span> = <span class="sql-str">'Seat segment collision detected!'</span>;
+  <span class="sql-kw">END IF;</span>
+<span class="sql-kw">END;</span>
+                        </div>
+                    </div>
+
+                    <div class="constraint-card">
+                        <div>
+                            <span class="constraint-badge cb-cognac"><i class="fa-solid fa-list-ol"></i> Business Rule 2</span>
+                            <h3>Unique Waitlist Position & Ordering</h3>
+                            <p style="font-size:0.84rem;">Ensures no two passengers share the same queue position for a given train journey schedule.</p>
+                        </div>
+                        <div class="sql-snippet-box">
+<span class="sql-kw">CREATE TABLE</span> Waitlist (
+  WaitlistID <span class="sql-fn">INT PRIMARY KEY</span>,
+  PNRID <span class="sql-fn">INT NOT NULL</span>,
+  ScheduleID <span class="sql-fn">INT NOT NULL</span>,
+  Position <span class="sql-fn">INT NOT NULL CHECK</span> (Position &gt; 0),
+  Status <span class="sql-fn">VARCHAR(20) DEFAULT</span> <span class="sql-str">'WAITING'</span>,
+  <span class="sql-kw">UNIQUE</span> (ScheduleID, Position),
+  <span class="sql-kw">FOREIGN KEY</span> (PNRID) <span class="sql-kw">REFERENCES</span> Booking(PNRID)
+);
+                        </div>
+                    </div>
+
+                    <div class="constraint-card">
+                        <div>
+                            <span class="constraint-badge cb-emerald"><i class="fa-solid fa-indian-rupee-sign"></i> Business Rule 3</span>
+                            <h3>Non-Negative Fares & Refund Constraints</h3>
+                            <p style="font-size:0.84rem;">Protects database from arithmetic corruption and invalid refund amounts.</p>
+                        </div>
+                        <div class="sql-snippet-box">
+<span class="sql-kw">ALTER TABLE</span> Booking <span class="sql-kw">ADD CONSTRAINT</span> chk_fare_non_negative
+<span class="sql-kw">CHECK</span> (TotalFare &gt;= <span class="sql-num">0.00</span>);
+
+<span class="sql-kw">ALTER TABLE</span> Payment <span class="sql-kw">ADD CONSTRAINT</span> chk_payment_amount
+<span class="sql-kw">CHECK</span> (Amount &gt;= <span class="sql-num">0.00</span>);
+                        </div>
+                    </div>
+
+                    <div class="constraint-card">
+                        <div>
+                            <span class="constraint-badge cb-red"><i class="fa-solid fa-arrow-down-1-9"></i> Business Rule 4</span>
+                            <h3>Chronological Stops & Stop Sequence Integrity</h3>
+                            <p style="font-size:0.84rem;">Guarantees train stops occur in ascending order with positive distances.</p>
+                        </div>
+                        <div class="sql-snippet-box">
+<span class="sql-kw">ALTER TABLE</span> Route_Stop <span class="sql-kw">ADD CONSTRAINT</span> chk_stop_seq
+<span class="sql-kw">CHECK</span> (StopSequence &gt; <span class="sql-num">0</span> <span class="sql-kw">AND</span> Distance &gt;= <span class="sql-num">0</span>);
+
+<span class="sql-kw">ALTER TABLE</span> Route_Stop <span class="sql-kw">ADD CONSTRAINT</span> chk_times
+<span class="sql-kw">CHECK</span> (DepartureTime &gt;= ArrivalTime);
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: 7 CORE SQL QUERIES & VIEWS RUNNER -->
+        <section class="slide" id="slide-4">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-database"></i> 4. Complex SQL Queries & Database Views</h2>
+                    <p class="slide-subtitle">Demonstrating multi-table Joins, Subqueries, Aggregations, and Views for 7 core railway reports</p>
+                </div>
+                <span class="slide-tag"><i class="fa-solid fa-code"></i> SQL Engine</span>
+            </div>
+
+            <div class="content-body">
+                <div class="query-runner-layout">
+                    <div class="query-list-nav" id="queryNav">
+                        <button class="query-tab-btn active" onclick="showQuery(1)">
+                            <span><i class="fa-solid fa-chair"></i> 1. Seat Availability</span>
+                            <span class="query-sub-tag">Left Joins + Subqueries</span>
+                        </button>
+                        <button class="query-tab-btn" onclick="showQuery(2)">
+                            <span><i class="fa-solid fa-hourglass-half"></i> 2. Active Waitlists</span>
+                            <span class="query-sub-tag">Window Functions & Order</span>
+                        </button>
+                        <button class="query-tab-btn" onclick="showQuery(3)">
+                            <span><i class="fa-solid fa-percent"></i> 3. Coach Occupancy</span>
+                            <span class="query-sub-tag">Aggregates (COUNT, SUM, %)</span>
+                        </button>
+                        <button class="query-tab-btn" onclick="showQuery(4)">
+                            <span><i class="fa-solid fa-fire"></i> 4. Route Demand</span>
+                            <span class="query-sub-tag">GROUP BY + HAVING + COUNT</span>
+                        </button>
+                        <button class="query-tab-btn" onclick="showQuery(5)">
+                            <span><i class="fa-solid fa-ban"></i> 5. Cancellations & Refunds</span>
+                            <span class="query-sub-tag">Conditional Aggregations</span>
+                        </button>
+                        <button class="query-tab-btn" onclick="showQuery(6)">
+                            <span><i class="fa-solid fa-user-route"></i> 6. Passenger Itinerary</span>
+                            <span class="query-sub-tag">5-Way Inner Join</span>
+                        </button>
+                        <button class="query-tab-btn" onclick="showQuery(7)">
+                            <span><i class="fa-solid fa-indian-rupee-sign"></i> 7. Total Revenue</span>
+                            <span class="query-sub-tag">Financial Summary View</span>
+                        </button>
+                    </div>
+
+                    <div class="query-main-panel">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3 id="queryTitle" style="color:var(--primary-cognac);"><i class="fa-solid fa-chair"></i> Report 1: Segment-Wise Seat Availability View</h3>
+                            <span id="queryTechnique" class="type-pill">VIEW + LEFT JOIN + SUBQUERY</span>
+                        </div>
+
+                        <div class="query-explain-badge">
+                            <i class="fa-solid fa-circle-info" style="color:var(--crimson-red);"></i>
+                            <span id="queryDescription">Evaluates physical seats against active reservations for specific journey segments to return exact hop vacancies.</span>
+                        </div>
+
+                        <div class="sql-snippet-box" id="queryCodeDisplay" style="max-height:150px;">
+                            <!-- Populated via JS -->
+                        </div>
+
+                        <div>
+                            <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Sample Live Output:</div>
+                            <div id="queryOutputTable">
+                                <!-- Populated via JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 5: LIVE DATABASE PROTOTYPE & INTERACTIVE SIMULATOR -->
+        <section class="slide" id="slide-5">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-laptop-code"></i> 5. Live Database Prototype Demonstration</h2>
+                    <p class="slide-subtitle">Real-time simulation of train search, booking allocation, constraint validation, and waitlist cascade</p>
+                </div>
+                <span class="slide-tag tag-amber"><i class="fa-solid fa-play"></i> Interactive Demo</span>
+            </div>
+
+            <div class="content-body">
+                <div class="proto-container">
+                    <div class="proto-card">
+                        <h3 style="color:var(--crimson-red);"><i class="fa-solid fa-ticket-simple"></i> Ticket Reservation & Allocation Simulator</h3>
+                        
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div class="proto-form-group">
+                                <label>Select Train</label>
+                                <select id="protoTrainSelect" class="proto-select">
+                                    <option value="101">101 - Rajdhani Express</option>
+                                    <option value="102">102 - Vande Bharat Express</option>
+                                </select>
+                            </div>
+                            <div class="proto-form-group">
+                                <label>Select Coach & Berth</label>
+                                <select id="protoCoachSelect" class="proto-select">
+                                    <option value="B1-12">Coach B1 - Seat 12 (Lower)</option>
+                                    <option value="B1-14">Coach B1 - Seat 14 (Upper)</option>
+                                    <option value="A1-04">Coach A1 - Seat 04 (Cabin)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div class="proto-form-group">
+                                <label>Source Station</label>
+                                <select id="protoSrcSelect" class="proto-select">
+                                    <option value="NDLS">New Delhi (NDLS - Stop 1)</option>
+                                    <option value="CNB">Kanpur Central (CNB - Stop 2)</option>
+                                </select>
+                            </div>
+                            <div class="proto-form-group">
+                                <label>Destination Station</label>
+                                <select id="protoDestSelect" class="proto-select">
+                                    <option value="CNB">Kanpur Central (CNB - Stop 2)</option>
+                                    <option value="HWH">Howrah Kolkata (HWH - Stop 3)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="proto-form-group">
+                            <label>Passenger Name & Age</label>
+                            <input type="text" id="protoPassengerName" class="proto-input" value="Siddharth Rao (24, M)">
+                        </div>
+
+                        <div style="display:flex; gap:10px; margin-top:8px;">
+                            <button class="proto-action-btn" style="flex:1;" onclick="simulateBooking()">
+                                <i class="fa-solid fa-circle-check"></i> Book Segment Ticket
+                            </button>
+                            <button class="proto-action-btn" style="background:#7F1D1D;" onclick="simulateCancellation()">
+                                <i class="fa-solid fa-trash-can"></i> Cancel PNR & Cascade
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="proto-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <h3 style="color:var(--emerald-green);"><i class="fa-solid fa-terminal"></i> Database Engine Transaction Logs</h3>
+                            <button class="dict-tab-btn" style="padding:4px 8px; font-size:0.72rem;" onclick="clearConsole()">Clear Log</button>
+                        </div>
+
+                        <div class="proto-console-out" id="protoConsole">
+[SYSTEM INIT] DBMS Review 2 Database Prototype Engine Loaded.
+[INTEGRITY] Constraints ACTIVE: CHECK(Fare >= 0), CHECK(StopSeq > 0), UNIQUE(WL_Pos).
+[TRIGGER ACTIVE] trg_check_segment_overlap loaded on table `Journey_Segment`.
+[READY] Select a journey segment and click 'Book Segment Ticket' to test concurrency.
+                        </div>
+
+                        <div style="margin-top:10px; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; font-size:0.76rem; color:var(--text-secondary);">
+                            <strong>Active Segment Status:</strong> B1-12 is currently booked (NDLS → CNB). Try booking CNB → HWH (Success) vs NDLS → HWH (Trigger Error).
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 6: SEGMENT CONCURRENCY VISUALIZER -->
+        <section class="slide" id="slide-6">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-route"></i> 6. Segment Conflict Resolution & Concurrency Proof</h2>
+                    <p class="slide-subtitle">Proof of multi-hop seat reuse: How 2 passengers occupy the exact same physical berth without collision</p>
+                </div>
+                <span class="slide-tag tag-amber"><i class="fa-solid fa-network-wired"></i> Concurrency Math</span>
+            </div>
+
+            <div class="content-body">
+                <div class="card" style="padding:22px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3><i class="fa-solid fa-train-subway" style="color:var(--crimson-red);"></i> Train 101 (Rajdhani Express) Route Track</h3>
+                        <span style="font-family:'JetBrains Mono'; font-size:0.8rem; color:var(--primary-cognac);">Coach B1 • Seat 12 (Lower Berth)</span>
+                    </div>
+
+                    <div class="track-timeline">
+                        <div class="track-st-node"><span class="track-st-label">New Delhi (NDLS)<br><small>Stop 1</small></span></div>
+                        <div class="track-st-node"><span class="track-st-label">Kanpur Central (CNB)<br><small>Stop 2</small></span></div>
+                        <div class="track-st-node"><span class="track-st-label">Prayagraj (PRYJ)<br><small>Stop 3</small></span></div>
+                        <div class="track-st-node"><span class="track-st-label">Howrah Kolkata (HWH)<br><small>Stop 4</small></span></div>
+                    </div>
+
+                    <div class="seg-matrix-grid">
+                        <div class="seg-seat-card" style="border-left:4px solid var(--emerald-green);">
+                            <div style="font-size:0.75rem; font-weight:700; color:var(--emerald-green); margin-bottom:4px;">PASSENGER 1 (PNR 894321)</div>
+                            <div style="font-size:0.86rem; font-weight:700; color:#FFFFFF;">NDLS → CNB (Hops 1 to 2)</div>
+                            <div style="font-size:0.74rem; color:var(--text-secondary); margin-top:4px;">Seat B1-12: <strong style="color:var(--emerald-green);">OCCUPIED</strong></div>
+                        </div>
+
+                        <div class="seg-seat-card" style="border-left:4px solid var(--primary-cognac);">
+                            <div style="font-size:0.75rem; font-weight:700; color:var(--primary-cognac); margin-bottom:4px;">PASSENGER 2 (PNR 894355)</div>
+                            <div style="font-size:0.86rem; font-weight:700; color:#FFFFFF;">CNB → HWH (Hops 2 to 4)</div>
+                            <div style="font-size:0.74rem; color:var(--text-secondary); margin-top:4px;">Seat B1-12: <strong style="color:var(--primary-cognac);">OCCUPIED (Shared)</strong></div>
+                        </div>
+
+                        <div class="seg-seat-card" style="border-left:4px solid var(--crimson-red);">
+                            <div style="font-size:0.75rem; font-weight:700; color:var(--crimson-red); margin-bottom:4px;">PASSENGER 3 (PNR 894410)</div>
+                            <div style="font-size:0.86rem; font-weight:700; color:#FFFFFF;">NDLS → PRYJ (Hops 1 to 3)</div>
+                            <div style="font-size:0.74rem; color:var(--ruby-light); margin-top:4px;"><strong style="color:var(--crimson-red);">BLOCKED (TRIGGER REJECT)</strong></div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:16px; background:rgba(0,0,0,0.35); padding:12px; border-radius:8px; font-size:0.8rem; color:var(--text-warm-light); display:flex; align-items:center; gap:12px;">
+                        <i class="fa-solid fa-lightbulb" style="color:var(--secondary-amber); font-size:1.2rem;"></i>
+                        <span><strong>Mathematical Principle:</strong> An overlap exists if and only if: <code>NOT (Requested_Dest &lt;= Existing_Src OR Requested_Src &gt;= Existing_Dest)</code>. Our trigger computes this in O(1) time per seat query!</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 7: REVIEW 2 CONCLUSION & REVIEW 3 ROADMAP -->
+        <section class="slide" id="slide-7">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-flag-checkered"></i> 7. Review 2 Deliverables Summary & Review 3 Roadmap</h2>
+                    <p class="slide-subtitle">Transitioning from SQL integrity and reporting to full-stack application and ACID stored procedures</p>
+                </div>
+                <span class="slide-tag tag-amber"><i class="fa-solid fa-award"></i> Review 2 Complete</span>
+            </div>
+
+            <div class="content-body">
+                <div class="grid-3" style="margin-bottom:16px;">
+                    <div class="card">
+                        <div style="color:var(--emerald-green); font-size:1.8rem; margin-bottom:10px;"><i class="fa-solid fa-circle-check"></i></div>
+                        <h3>Review 2 Delivered</h3>
+                        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; font-size:0.82rem; color:var(--text-secondary); margin-top:8px;">
+                            <li>✔ 3NF Proof & Functional Dependencies</li>
+                            <li>✔ Comprehensive Data Dictionary (11 tables)</li>
+                            <li>✔ Advanced DDL Constraints & Triggers</li>
+                            <li>✔ 7 Complex Analytical Queries & Views</li>
+                            <li>✔ Live Database Prototype & Simulator</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <div style="color:var(--primary-cognac); font-size:1.8rem; margin-bottom:10px;"><i class="fa-solid fa-gears"></i></div>
+                        <h3>Technical Achievements</h3>
+                        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; font-size:0.82rem; color:var(--text-secondary); margin-top:8px;">
+                            <li>• Zero Transitive Dependencies (3NF)</li>
+                            <li>• Robust Segment Collision Elimination</li>
+                            <li>• Auto-Waitlist FIFO Queue Indexing</li>
+                            <li>• Accurate Revenue & Occupancy Views</li>
+                            <li>• Multi-hop Seat Occupancy Maximization</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <div style="color:var(--crimson-red); font-size:1.8rem; margin-bottom:10px;"><i class="fa-solid fa-rocket"></i></div>
+                        <h3>Review 3 Roadmap</h3>
+                        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; font-size:0.82rem; color:var(--text-secondary); margin-top:8px;">
+                            <li>➤ Full-Stack Web Frontend (HTML/JS + Python/Java)</li>
+                            <li>➤ ACID Stored Procedures (BOOK_TICKET, CANCEL_PNR)</li>
+                            <li>➤ Indexing for High-Speed Route Searches</li>
+                            <li>➤ Concurrency Stress Testing & Benchmarks</li>
+                            <li>➤ Automated Reporting Dashboard</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Dock Navigation Bar -->
+    <footer class="bottom-bar">
+        <button class="nav-btn" onclick="prevSlide()" title="Previous Slide (←)"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="slide-dots" id="slideDots"></div>
+        <span class="slide-counter" id="slideCounter">1 / 8</span>
+        <button class="nav-btn" onclick="nextSlide()" title="Next Slide (→)"><i class="fa-solid fa-chevron-right"></i></button>
+    </footer>
+
+    <!-- Presenter Pitch Notes Drawer -->
+    <aside class="pitch-drawer" id="pitchDrawer">
+        <div class="pitch-header">
+            <h4><i class="fa-solid fa-microphone"></i> Speaker Pitch Script — <span id="pitchSlideTitle">Slide 1</span></h4>
+            <button class="header-btn" onclick="togglePitchDrawer()" style="padding:4px 12px; font-size:0.75rem;">Close (P)</button>
+        </div>
+        <p class="pitch-text" id="pitchContent"></p>
+    </aside>
+
+    <!-- Interactive Data Scripts & State Handlers -->
+    <script>
+        // Slide Pitch Scripts
+        const pitchScripts = [
+            "Good morning/afternoon everyone. Today, I am presenting Review 2 of our Database Management System for the Railway Ticket Reservation and Journey Management System. In this review, we have established complete 3NF mathematical verification, functional dependencies, integrity constraint DDLs, 7 analytical SQL reports with views, and a working interactive database prototype.",
+            "Slide 1 details our 3NF Normalization and Functional Dependencies. Every non-prime attribute in all 11 tables depends strictly and solely on the primary key, with zero transitive dependencies. For example, in our ROUTE_STOP and JOURNEY_SEGMENT associative tables, every determinant is a superkey, completely eliminating update, insertion, and deletion anomalies.",
+            "Slide 2 presents our concise Data Dictionary. It documents all 11 relations, their exact MySQL data types, nullability rules, primary key constraints, foreign key referential integrity chains, and business descriptions across fleet, route, booking, and payment subsystems.",
+            "Slide 3 covers our DDL Scripts and Integrity Constraints. We implemented database triggers and check constraints to enforce: no overlapping seat segments across common hops, strict unique waitlist FIFO ordering, non-negative fares and refund integrity, and chronological stop sequences with valid arrival/departure timings.",
+            "Slide 4 showcases our 7 Complex SQL Queries and Database Views. These cover segment-wise seat availability using Left Joins and Subqueries, dynamic waitlist ranking, coach occupancy aggregation, popular route demand, cancellations ledger, 5-way joined passenger journeys, and total railway revenue aggregation.",
+            "Slide 5 is our live Database Prototype demonstration. Here we simulate live passenger reservations. Notice how the database engine performs real-time segment overlap verification, allowing valid disjoint bookings while rejecting collisions and maintaining FIFO waitlists upon cancellations.",
+            "Slide 6 demonstrates the mathematical principle of our segment concurrency resolution. Coach B1 Seat 12 is successfully occupied by Passenger 1 from Delhi to Kanpur, and seamlessly handed over to Passenger 2 from Kanpur to Kolkata on the exact same train trip without seat clashes.",
+            "In conclusion for Review 2, our normalized 3NF architecture, constraint triggers, analytical queries, and database prototype are fully operational. For Review 3, we will integrate ACID stored procedures and connect this backend to our full-stack web application. Thank you!"
+        ];
+
+        // Data Dictionary Content
+        const dataDictionary = {
+            'Train': [
+                { name: 'TrainID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique identifier for train locomotive / fleet.' },
+                { name: 'Name', type: 'VARCHAR(100)', key: '-', null: 'NOT NULL', desc: 'Official commercial name (e.g., Rajdhani Express).' },
+                { name: 'Type', type: 'VARCHAR(50)', key: '-', null: 'DEFAULT "Express"', desc: 'Train classification (Superfast, Express, Vande Bharat).' }
+            ],
+            'Station': [
+                { name: 'StationID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique station numeric code.' },
+                { name: 'Name', type: 'VARCHAR(100)', key: '-', null: 'NOT NULL', desc: 'Station name (e.g., Kanpur Central).' },
+                { name: 'City', type: 'VARCHAR(100)', key: '-', null: 'NOT NULL', desc: 'City where the station is located.' }
+            ],
+            'Route_Stop': [
+                { name: 'RouteID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique route schedule stop identifier.' },
+                { name: 'TrainID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Train(TrainID).' },
+                { name: 'StationID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Station(StationID).' },
+                { name: 'StopSequence', type: 'INT', key: '-', null: 'NOT NULL', desc: 'Order of stop on the train route (CHECK > 0).' },
+                { name: 'ArrivalTime', type: 'TIME', key: '-', null: 'NULL', desc: 'Scheduled train arrival time.' },
+                { name: 'DepartureTime', type: 'TIME', key: '-', null: 'NULL', desc: 'Scheduled train departure time.' },
+                { name: 'Distance', type: 'INT', key: '-', null: 'DEFAULT 0', desc: 'Cumulative distance in KM from origin station.' }
+            ],
+            'Schedule': [
+                { name: 'ScheduleID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique ID for a specific train trip date.' },
+                { name: 'TrainID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Train(TrainID).' },
+                { name: 'JourneyDate', type: 'DATE', key: '-', null: 'NOT NULL', desc: 'Date on which the scheduled train departs.' }
+            ],
+            'Coach': [
+                { name: 'CoachID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique identifier for the coach car.' },
+                { name: 'TrainID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Train(TrainID).' },
+                { name: 'CoachType', type: 'VARCHAR(50)', key: '-', null: 'NOT NULL', desc: 'AC 1st Class, AC 2-Tier, AC 3-Tier, Sleeper.' },
+                { name: 'TotalSeats', type: 'INT', key: '-', null: 'CHECK > 0', desc: 'Total physical seat count in the coach (e.g. 72).' }
+            ],
+            'Seat': [
+                { name: 'SeatID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique identifier for a physical seat.' },
+                { name: 'CoachID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Coach(CoachID).' },
+                { name: 'SeatNumber', type: 'INT', key: '-', null: 'NOT NULL', desc: 'Physical seat number inside coach (1 to 72).' },
+                { name: 'BerthType', type: 'VARCHAR(50)', key: '-', null: 'NOT NULL', desc: 'Lower, Middle, Upper, Side Lower, Side Upper.' }
+            ],
+            'Passenger': [
+                { name: 'PassengerID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique passenger account identifier.' },
+                { name: 'FirstName', type: 'VARCHAR(50)', key: '-', null: 'NOT NULL', desc: 'Given name of traveler.' },
+                { name: 'LastName', type: 'VARCHAR(50)', key: '-', null: 'NOT NULL', desc: 'Family surname of traveler.' },
+                { name: 'Age', type: 'INT', key: '-', null: 'CHECK > 0', desc: 'Age in completed years.' },
+                { name: 'Gender', type: 'VARCHAR(10)', key: '-', null: 'NOT NULL', desc: 'Male, Female, Other.' }
+            ],
+            'Booking': [
+                { name: 'PNRID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Passenger Name Record 6-digit unique number.' },
+                { name: 'PassengerID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Passenger(PassengerID).' },
+                { name: 'BookingDate', type: 'DATE', key: '-', null: 'NOT NULL', desc: 'Timestamp when reservation was recorded.' },
+                { name: 'TotalFare', type: 'DECIMAL(10,2)', key: '-', null: 'CHECK >= 0', desc: 'Total ticket fare collected.' },
+                { name: 'Status', type: 'VARCHAR(20)', key: '-', null: 'NOT NULL', desc: 'CONFIRMED, WAITLISTED, CANCELLED.' }
+            ],
+            'Journey_Segment': [
+                { name: 'SegmentID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique segment booking hop identifier.' },
+                { name: 'PNRID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Booking(PNRID).' },
+                { name: 'ScheduleID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Schedule(ScheduleID).' },
+                { name: 'SourceRouteID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Route_Stop(RouteID) origin hop.' },
+                { name: 'DestRouteID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Route_Stop(RouteID) destination hop.' },
+                { name: 'SeatID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Seat(SeatID).' },
+                { name: 'Status', type: 'VARCHAR(20)', key: '-', null: 'DEFAULT "CONFIRMED"', desc: 'CONFIRMED, CANCELLED.' }
+            ],
+            'Waitlist': [
+                { name: 'WaitlistID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Queue record ID.' },
+                { name: 'PNRID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Booking(PNRID).' },
+                { name: 'ScheduleID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Schedule(ScheduleID).' },
+                { name: 'Position', type: 'INT', key: 'UNIQUE', null: 'NOT NULL CHECK > 0', desc: 'Sequential FIFO waitlist position number.' },
+                { name: 'Status', type: 'VARCHAR(20)', key: '-', null: 'DEFAULT "WAITING"', desc: 'WAITING, PROMOTED, CANCELLED.' }
+            ],
+            'Payment': [
+                { name: 'PaymentID', type: 'INT', key: 'PK', null: 'NOT NULL', desc: 'Unique payment transaction ID.' },
+                { name: 'PNRID', type: 'INT', key: 'FK', null: 'NOT NULL', desc: 'References Booking(PNRID).' },
+                { name: 'Amount', type: 'DECIMAL(10,2)', key: '-', null: 'CHECK >= 0', desc: 'Monetary amount processed in transaction.' },
+                { name: 'PaymentDate', type: 'DATE', key: '-', null: 'NOT NULL', desc: 'Date of gateway settlement.' },
+                { name: 'Method', type: 'VARCHAR(50)', key: '-', null: 'NOT NULL', desc: 'UPI, Credit Card, NetBanking, Debit Card.' }
+            ]
+        };
+
+        // 7 SQL Queries Data
+        const sqlQueries = {
+            1: {
+                title: "Report 1: Segment-Wise Seat Availability View",
+                technique: "CREATE VIEW + LEFT JOIN + SUBQUERY",
+                desc: "Finds all physical seats in a train schedule that are currently unreserved between specified stop sequences.",
+                sql: `<span class="sql-kw">CREATE VIEW</span> vw_SegmentAvailability <span class="sql-kw">AS</span>
+<span class="sql-kw">SELECT</span> 
+  s.ScheduleID, t.Name <span class="sql-kw">AS</span> TrainName, c.CoachType, st.SeatNumber, st.BerthType
+<span class="sql-kw">FROM</span> Seat st
+<span class="sql-kw">JOIN</span> Coach c <span class="sql-kw">ON</span> st.CoachID = c.CoachID
+<span class="sql-kw">JOIN</span> Schedule s <span class="sql-kw">ON</span> c.TrainID = s.TrainID
+<span class="sql-kw">JOIN</span> Train t <span class="sql-kw">ON</span> s.TrainID = t.TrainID
+<span class="sql-kw">WHERE</span> st.SeatID <span class="sql-kw">NOT IN</span> (
+  <span class="sql-kw">SELECT</span> js.SeatID <span class="sql-kw">FROM</span> Journey_Segment js
+  <span class="sql-kw">WHERE</span> js.ScheduleID = s.ScheduleID <span class="sql-kw">AND</span> js.Status = <span class="sql-str">'CONFIRMED'</span>
+);`,
+                tableHtml: `<table class="dict-table">
+<tr><th>ScheduleID</th><th>Train Name</th><th>Coach</th><th>Seat No</th><th>Berth</th><th>Status</th></tr>
+<tr><td>501</td><td>Rajdhani Express</td><td>AC 3-Tier</td><td>14</td><td>Upper</td><td><span style="color:#10B981; font-weight:700;">AVAILABLE</span></td></tr>
+<tr><td>501</td><td>Rajdhani Express</td><td>AC 1st Class</td><td>04</td><td>Cabin</td><td><span style="color:#10B981; font-weight:700;">AVAILABLE</span></td></tr>
+<tr><td>502</td><td>Vande Bharat</td><td>Exec Chair</td><td>08</td><td>Window</td><td><span style="color:#10B981; font-weight:700;">AVAILABLE</span></td></tr>
+</table>`
+            },
+            2: {
+                title: "Report 2: Dynamic FIFO Waitlist Promotion Queue",
+                technique: "JOIN + ORDER BY Position ASC",
+                desc: "Lists waiting passengers in strict FIFO sequence ready for automated promotion upon ticket cancellation.",
+                sql: `<span class="sql-kw">SELECT</span> 
+  w.Position <span class="sql-kw">AS</span> WL_Rank, b.PNRID, CONCAT(p.FirstName, <span class="sql-str">' '</span>, p.LastName) <span class="sql-kw">AS</span> Passenger,
+  t.Name <span class="sql-kw">AS</span> Train, s.JourneyDate, w.Status
+<span class="sql-kw">FROM</span> Waitlist w
+<span class="sql-kw">JOIN</span> Booking b <span class="sql-kw">ON</span> w.PNRID = b.PNRID
+<span class="sql-kw">JOIN</span> Passenger p <span class="sql-kw">ON</span> b.PassengerID = p.PassengerID
+<span class="sql-kw">JOIN</span> Schedule s <span class="sql-kw">ON</span> w.ScheduleID = s.ScheduleID
+<span class="sql-kw">JOIN</span> Train t <span class="sql-kw">ON</span> s.TrainID = t.TrainID
+<span class="sql-kw">WHERE</span> w.Status = <span class="sql-str">'WAITING'</span>
+<span class="sql-kw">ORDER BY</span> w.ScheduleID, w.Position <span class="sql-kw">ASC</span>;`,
+                tableHtml: `<table class="dict-table">
+<tr><th>WL Rank</th><th>PNRID</th><th>Passenger</th><th>Train</th><th>Journey Date</th><th>Queue Status</th></tr>
+<tr><td><span style="color:#F59E0B; font-weight:700;">WL #1</span></td><td>894322</td><td>Priya Verma</td><td>Rajdhani Express</td><td>2026-10-15</td><td>WAITING</td></tr>
+<tr><td><span style="color:#F59E0B; font-weight:700;">WL #2</span></td><td>894325</td><td>Karan Patel</td><td>Rajdhani Express</td><td>2026-10-15</td><td>WAITING</td></tr>
+</table>`
+            },
+            3: {
+                title: "Report 3: Coach Occupancy & Utilization Rate",
+                technique: "GROUP BY + AGGREGATE (COUNT, ROUND %)",
+                desc: "Calculates the capacity utilization percentage for each coach to assist railway scheduling algorithms.",
+                sql: `<span class="sql-kw">SELECT</span> 
+  t.Name <span class="sql-kw">AS</span> Train, c.CoachType, c.TotalSeats,
+  <span class="sql-fn">COUNT</span>(DISTINCT js.SeatID) <span class="sql-kw">AS</span> BookedSeats,
+  <span class="sql-fn">ROUND</span>((<span class="sql-fn">COUNT</span>(DISTINCT js.SeatID) / c.TotalSeats) * <span class="sql-num">100</span>, <span class="sql-num">2</span>) <span class="sql-kw">AS</span> OccupancyPercent
+<span class="sql-kw">FROM</span> Coach c
+<span class="sql-kw">JOIN</span> Train t <span class="sql-kw">ON</span> c.TrainID = t.TrainID
+<span class="sql-kw">JOIN</span> Seat st <span class="sql-kw">ON</span> c.CoachID = st.CoachID
+<span class="sql-kw">LEFT JOIN</span> Journey_Segment js <span class="sql-kw">ON</span> st.SeatID = js.SeatID <span class="sql-kw">AND</span> js.Status = <span class="sql-str">'CONFIRMED'</span>
+<span class="sql-kw">GROUP BY</span> c.CoachID, t.Name, c.CoachType, c.TotalSeats;`,
+                tableHtml: `<table class="dict-table">
+<tr><th>Train</th><th>Coach Type</th><th>Total Capacity</th><th>Booked Seats</th><th>Occupancy %</th></tr>
+<tr><td>Rajdhani Express</td><td>AC 3-Tier (B1)</td><td>72</td><td>68</td><td><span style="color:#10B981; font-weight:700;">94.44%</span></td></tr>
+<tr><td>Rajdhani Express</td><td>AC 1st Class (A1)</td><td>24</td><td>22</td><td><span style="color:#10B981; font-weight:700;">91.67%</span></td></tr>
+<tr><td>Vande Bharat</td><td>Chair Car (C1)</td><td>78</td><td>75</td><td><span style="color:#10B981; font-weight:700;">96.15%</span></td></tr>
+</table>`
+            },
+            4: {
+                title: "Report 4: High-Demand Station Route Pairs",
+                technique: "JOIN + GROUP BY + HAVING COUNT(*) > 1",
+                desc: "Analyzes booking travel legs to identify the most heavily requested origin-destination station corridors.",
+                sql: `<span class="sql-kw">SELECT</span> 
+  s1.Name <span class="sql-kw">AS</span> Origin, s2.Name <span class="sql-kw">AS</span> Destination,
+  <span class="sql-fn">COUNT</span>(js.SegmentID) <span class="sql-kw">AS</span> TotalBookings,
+  <span class="sql-fn">SUM</span>(b.TotalFare) <span class="sql-kw">AS</span> RouteRevenue
+<span class="sql-kw">FROM</span> Journey_Segment js
+<span class="sql-kw">JOIN</span> Route_Stop r1 <span class="sql-kw">ON</span> js.SourceRouteID = r1.RouteID
+<span class="sql-kw">JOIN</span> Station s1 <span class="sql-kw">ON</span> r1.StationID = s1.StationID
+<span class="sql-kw">JOIN</span> Route_Stop r2 <span class="sql-kw">ON</span> js.DestRouteID = r2.RouteID
+<span class="sql-kw">JOIN</span> Station s2 <span class="sql-kw">ON</span> r2.StationID = s2.StationID
+<span class="sql-kw">JOIN</span> Booking b <span class="sql-kw">ON</span> js.PNRID = b.PNRID
+<span class="sql-kw">GROUP BY</span> s1.Name, s2.Name
+<span class="sql-kw">ORDER BY</span> TotalBookings <span class="sql-kw">DESC</span>;`,
+                tableHtml: `<table class="dict-table">
+<tr><th>Origin Station</th><th>Destination Station</th><th>Total Bookings</th><th>Corridor Revenue</th></tr>
+<tr><td>New Delhi (NDLS)</td><td>Kanpur Central (CNB)</td><td>142</td><td>₹2,13,000.00</td></tr>
+<tr><td>Kanpur Central (CNB)</td><td>Howrah Kolkata (HWH)</td><td>118</td><td>₹2,12,400.00</td></tr>
+<tr><td>Mumbai CSMT (CSTM)</td><td>Pune Junction (PUNE)</td><td>96</td><td>₹86,400.00</td></tr>
+</table>`
+            },
+            5: {
+                title: "Report 5: Cancellation & Refund Ledger Analysis",
+                technique: "CONDITIONAL CASE WHEN + AGGREGATIONS",
+                desc: "Computes total cancellation fees deducted versus refunds issued as per standard railway refund policies.",
+                sql: `<span class="sql-kw">SELECT</span> 
+  b.PNRID, p.FirstName, b.BookingDate, b.TotalFare <span class="sql-kw">AS</span> OriginalFare,
+  <span class="sql-kw">CASE</span> 
+    <span class="sql-kw">WHEN</span> b.Status = <span class="sql-str">'CANCELLED'</span> <span class="sql-kw">THEN</span> b.TotalFare * <span class="sql-num">0.80</span>
+    <span class="sql-kw">ELSE</span> <span class="sql-num">0.00</span>
+  <span class="sql-kw">END AS</span> RefundAmount,
+  <span class="sql-kw">CASE</span> 
+    <span class="sql-kw">WHEN</span> b.Status = <span class="sql-str">'CANCELLED'</span> <span class="sql-kw">THEN</span> b.TotalFare * <span class="sql-num">0.20</span>
+    <span class="sql-kw">ELSE</span> <span class="sql-num">0.00</span>
+  <span class="sql-kw">END AS</span> CancellationFeeDeducted
+<span class="sql-kw">FROM</span> Booking b
+<span class="sql-kw">JOIN</span> Passenger p <span class="sql-kw">ON</span> b.PassengerID = p.PassengerID
+<span class="sql-kw">WHERE</span> b.Status = <span class="sql-str">'CANCELLED'</span>;`,
+                tableHtml: `<table class="dict-table">
+<tr><th>PNRID</th><th>Passenger</th><th>Original Fare</th><th>Refund Paid (80%)</th><th>Clerkage Retained (20%)</th></tr>
+<tr><td>894310</td><td>Rahul Roy</td><td>₹1,800.00</td><td><span style="color:#10B981;">₹1,440.00</span></td><td><span style="color:#E11D48;">₹360.00</span></td></tr>
+<tr><td>894315</td><td>Ananya Sen</td><td>₹2,400.00</td><td><span style="color:#10B981;">₹1,920.00</span></td><td><span style="color:#E11D48;">₹480.00</span></td></tr>
+</table>`
+            },
+            6: {
+                title: "Report 6: Complete Passenger Journey Itinerary",
+                technique: "5-WAY INNER JOIN (Passenger → Booking → Segment → Routes → Seat)",
+                desc: "Retrieves complete end-to-end trip details, coach berth assignment, and departure timings for any given PNR.",
+                sql: `<span class="sql-kw">SELECT</span> 
+  b.PNRID, CONCAT(p.FirstName, <span class="sql-str">' '</span>, p.LastName) <span class="sql-kw">AS</span> PassengerName,
+  t.Name <span class="sql-kw">AS</span> Train, s1.Name <span class="sql-kw">AS</span> BoardingStation, r1.DepartureTime,
+  s2.Name <span class="sql-kw">AS</span> DeBoardingStation, r2.ArrivalTime,
+  CONCAT(c.CoachType, <span class="sql-str">' - '</span>, st.SeatNumber, <span class="sql-str">' ('</span>, st.BerthType, <span class="sql-str">')'</span>) <span class="sql-kw">AS</span> BerthInfo
+<span class="sql-kw">FROM</span> Booking b
+<span class="sql-kw">JOIN</span> Passenger p <span class="sql-kw">ON</span> b.PassengerID = p.PassengerID
+<span class="sql-kw">JOIN</span> Journey_Segment js <span class="sql-kw">ON</span> b.PNRID = js.PNRID
+<span class="sql-kw">JOIN</span> Route_Stop r1 <span class="sql-kw">ON</span> js.SourceRouteID = r1.RouteID
+<span class="sql-kw">JOIN</span> Station s1 <span class="sql-kw">ON</span> r1.StationID = s1.StationID
+<span class="sql-kw">JOIN</span> Route_Stop r2 <span class="sql-kw">ON</span> js.DestRouteID = r2.RouteID
+<span class="sql-kw">JOIN</span> Station s2 <span class="sql-kw">ON</span> r2.StationID = s2.StationID
+<span class="sql-kw">JOIN</span> Seat st <span class="sql-kw">ON</span> js.SeatID = st.SeatID
+<span class="sql-kw">JOIN</span> Coach c <span class="sql-kw">ON</span> st.CoachID = c.CoachID
+<span class="sql-kw">JOIN</span> Train t <span class="sql-kw">ON</span> c.TrainID = t.TrainID
+<span class="sql-kw">WHERE</span> b.PNRID = <span class="sql-num">894321</span>;`,
+                tableHtml: `<table class="dict-table">
+<tr><th>PNRID</th><th>Passenger</th><th>Train</th><th>Boarding Station</th><th>Dep Time</th><th>Destination</th><th>Berth</th></tr>
+<tr><td>894321</td><td>Aarav Sharma</td><td>Rajdhani Express</td><td>New Delhi (NDLS)</td><td>16:55:00</td><td>Kanpur (CNB)</td><td>AC 3-Tier - 12 (Lower)</td></tr>
+</table>`
+            },
+            7: {
+                title: "Report 7: Financial Summary & Revenue Aggregation",
+                technique: "CREATE VIEW + AGGREGATION + NESTED SUBQUERIES",
+                desc: "Provides top-level financial metrics by payment method, net bookings, and revenue by train category.",
+                sql: `<span class="sql-kw">CREATE VIEW</span> vw_RevenueSummary <span class="sql-kw">AS</span>
+<span class="sql-kw">SELECT</span> 
+  t.Type <span class="sql-kw">AS</span> Category,
+  <span class="sql-fn">COUNT</span>(DISTINCT b.PNRID) <span class="sql-kw">AS</span> TotalBookings,
+  <span class="sql-fn">SUM</span>(p.Amount) <span class="sql-kw">AS</span> GrossRevenue
+<span class="sql-kw">FROM</span> Train t
+<span class="sql-kw">JOIN</span> Schedule s <span class="sql-kw">ON</span> t.TrainID = s.TrainID
+<span class="sql-kw">JOIN</span> Journey_Segment js <span class="sql-kw">ON</span> s.ScheduleID = js.ScheduleID
+<span class="sql-kw">JOIN</span> Booking b <span class="sql-kw">ON</span> js.PNRID = b.PNRID
+<span class="sql-kw">JOIN</span> Payment p <span class="sql-kw">ON</span> b.PNRID = p.PNRID
+<span class="sql-kw">WHERE</span> b.Status = <span class="sql-str">'CONFIRMED'</span>
+<span class="sql-kw">GROUP BY</span> t.Type;`,
+                tableHtml: `<table class="dict-table">
+<tr><th>Train Category</th><th>Confirmed Bookings</th><th>Gross Ticket Revenue</th></tr>
+<tr><td>Superfast Express</td><td>1,420</td><td><span style="color:#F59E0B; font-weight:700;">₹21,30,000.00</span></td></tr>
+<tr><td>Vande Bharat Semi-High Speed</td><td>850</td><td><span style="color:#F59E0B; font-weight:700;">₹14,45,000.00</span></td></tr>
+<tr><td>Mail / Express</td><td>2,100</td><td><span style="color:#F59E0B; font-weight:700;">₹18,90,000.00</span></td></tr>
+<tr><td><strong>TOTAL NETWORK REVENUE</strong></td><td><strong>4,370</strong></td><td><strong style="color:#10B981;">₹54,65,000.00</strong></td></tr>
+</table>`
+            }
+        };
+
+        // Slide State Navigation
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const dotsContainer = document.getElementById('slideDots');
+        const slideCounter = document.getElementById('slideCounter');
+
+        // Generate dots
+        slides.forEach((_, idx) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+            dot.onclick = () => goToSlide(idx);
+            dotsContainer.appendChild(dot);
+        });
+
+        function updateSlideUI() {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('active', idx === currentSlideIndex);
+            });
+            document.querySelectorAll('.dot').forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === currentSlideIndex);
+            });
+            slideCounter.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+
+            // Update Pitch Drawer Text
+            document.getElementById('pitchSlideTitle').textContent = `Slide ${currentSlideIndex + 1}`;
+            document.getElementById('pitchContent').textContent = pitchScripts[currentSlideIndex] || '';
+        }
+
+        function nextSlide() {
+            if (currentSlideIndex < slides.length - 1) {
+                currentSlideIndex++;
+                updateSlideUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                updateSlideUI();
+            }
+        }
+
+        function goToSlide(index) {
+            currentSlideIndex = index;
+            updateSlideUI();
+        }
+
+        // Keyboard Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key.toLowerCase() === 'p') {
+                togglePitchDrawer();
+            } else if (e.key.toLowerCase() === 'f') {
+                toggleFullScreen();
+            }
+        });
+
+        function togglePitchDrawer() {
+            document.getElementById('pitchDrawer').classList.toggle('open');
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        // Data Dictionary Renderer
+        function showDictTable(tableName) {
+            document.querySelectorAll('.dict-tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            document.getElementById('dictTableName').innerHTML = `<i class="fa-solid fa-table"></i> ${tableName.toUpperCase()}`;
+            const cols = dataDictionary[tableName] || [];
+            
+            let html = `<table class="dict-table">
+                <thead><tr><th>Column</th><th>Type</th><th>Key</th><th>Nullability</th><th>Description / Constraint</th></tr></thead><tbody>`;
+            
+            cols.forEach(c => {
+                const keyBadge = c.key === 'PK' ? '<span class="key-pill-pk">PK</span>' : (c.key === 'FK' ? '<span class="key-pill-fk">FK</span>' : (c.key === 'UNIQUE' ? '<span class="type-pill">UNIQUE</span>' : '-'));
+                html += `<tr>
+                    <td style="font-family:'JetBrains Mono'; font-weight:700; color:#FFFDFB;">${c.name}</td>
+                    <td><span class="type-pill">${c.type}</span></td>
+                    <td>${keyBadge}</td>
+                    <td style="font-size:0.75rem; color:var(--text-muted);">${c.null}</td>
+                    <td style="font-size:0.78rem;">${c.desc}</td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            document.getElementById('dictTableContent').innerHTML = html;
+        }
+
+        // Query Viewer Switcher
+        function showQuery(queryId) {
+            document.querySelectorAll('.query-tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+
+            const q = sqlQueries[queryId];
+            if (!q) return;
+
+            document.getElementById('queryTitle').innerHTML = `<i class="fa-solid fa-code"></i> ${q.title}`;
+            document.getElementById('queryTechnique').textContent = q.technique;
+            document.getElementById('queryDescription').textContent = q.desc;
+            document.getElementById('queryCodeDisplay').innerHTML = q.sql;
+            document.getElementById('queryOutputTable').innerHTML = q.tableHtml;
+        }
+
+        // Prototype Simulator Logic
+        let simulatedBookings = [
+            { pnr: 894321, train: '101', seat: 'B1-12', src: 'NDLS', dest: 'CNB', srcSeq: 1, destSeq: 2, status: 'CONFIRMED' }
+        ];
+        let nextPnr = 894323;
+
+        function logConsole(msg, type = 'info') {
+            const con = document.getElementById('protoConsole');
+            const time = new Date().toLocaleTimeString();
+            let color = '#6EE7B7';
+            if (type === 'error') color = '#FDA4AF';
+            if (type === 'warn') color = '#FDE68A';
+            if (type === 'success') color = '#A7F3D0';
+
+            con.innerHTML += `\n<span style="color:${color};">[${time}] ${msg}</span>`;
+            con.scrollTop = con.scrollHeight;
+        }
+
+        function clearConsole() {
+            document.getElementById('protoConsole').innerHTML = `[SYSTEM RESET] Database Prototype Console cleared.`;
+        }
+
+        function simulateBooking() {
+            const train = document.getElementById('protoTrainSelect').value;
+            const seat = document.getElementById('protoCoachSelect').value;
+            const src = document.getElementById('protoSrcSelect').value;
+            const dest = document.getElementById('protoDestSelect').value;
+            const name = document.getElementById('protoPassengerName').value;
+
+            const seqMap = { 'NDLS': 1, 'CNB': 2, 'PRYJ': 3, 'HWH': 4 };
+            const reqSrcSeq = seqMap[src] || 1;
+            const reqDestSeq = seqMap[dest] || 2;
+
+            if (reqSrcSeq >= reqDestSeq) {
+                logConsole(`[ERROR] Invalid Stop Sequence! Destination (${dest}) must be after Origin (${src}). CHECK constraint violated.`, 'error');
+                return;
+            }
+
+            // Check overlap against existing bookings
+            let collision = false;
+            let collidingPnr = null;
+
+            simulatedBookings.forEach(b => {
+                if (b.train === train && b.seat === seat && b.status === 'CONFIRMED') {
+                    // Overlap formula
+                    const isDisjoint = (reqDestSeq <= b.srcSeq) || (reqSrcSeq >= b.destSeq);
+                    if (!isDisjoint) {
+                        collision = true;
+                        collidingPnr = b.pnr;
+                    }
+                }
+            });
+
+            if (collision) {
+                logConsole(`[TRIGGER SIGNAL 45000] Segment clash on Seat ${seat}! Overlaps with PNR ${collidingPnr} (${src} → ${dest}). Booking moved to WAITLIST #1.`, 'warn');
+            } else {
+                simulatedBookings.push({
+                    pnr: nextPnr,
+                    train: train,
+                    seat: seat,
+                    src: src,
+                    dest: dest,
+                    srcSeq: reqSrcSeq,
+                    destSeq: reqDestSeq,
+                    status: 'CONFIRMED'
+                });
+                logConsole(`[TRANSACTION COMMIT] PNR ${nextPnr} CONFIRMED! Passenger: ${name} | Seat: ${seat} | Hop: ${src} (${reqSrcSeq}) → ${dest} (${reqDestSeq}).`, 'success');
+                nextPnr++;
+            }
+        }
+
+        function simulateCancellation() {
+            if (simulatedBookings.length === 0) {
+                logConsole(`[CANCEL] No active bookings to cancel.`, 'warn');
+                return;
+            }
+            const cancelled = simulatedBookings.pop();
+            logConsole(`[ACID ROLLBACK] PNR ${cancelled.pnr} CANCELLED. Fare refund processed: ₹1,200.00 (80% net refund).`, 'warn');
+            logConsole(`[AUTO-CASCADE TRIGGER] Seat ${cancelled.seat} released! Waitlist #1 (Priya Verma) PROMOTED to CONFIRMED. New PNR Generated.`, 'success');
+        }
+
+        // Initialize on load
+        showDictTable('Train');
+        showQuery(1);
+        updateSlideUI();
+    </script>
+</body>
+
+</html>

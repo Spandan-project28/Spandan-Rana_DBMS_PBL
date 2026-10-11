@@ -1,0 +1,3001 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Ticket Reservation System — DBMS Review 1</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,400&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-dark: #090D16;
+            --bg-surface: #0F172A;
+            --card-bg: rgba(18, 26, 47, 0.75);
+            --card-border: rgba(99, 102, 241, 0.2);
+            --card-hover-border: rgba(99, 102, 241, 0.6);
+            --primary: #6366F1;
+            --primary-glow: rgba(99, 102, 241, 0.35);
+            --secondary: #06B6D4;
+            --secondary-glow: rgba(6, 182, 212, 0.35);
+            --accent: #F43F5E;
+            --accent-glow: rgba(244, 63, 94, 0.35);
+            --emerald: #10B981;
+            --amber: #F59E0B;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --glass-bg: rgba(15, 23, 42, 0.65);
+            --radius-lg: 20px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Ambient Glowing Background Orbs */
+        .bg-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.45;
+            transition: all 1s ease;
+        }
+
+        .glow-1 {
+            top: -10%;
+            left: -5%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, #4f46e5 0%, transparent 70%);
+        }
+
+        .glow-2 {
+            bottom: -15%;
+            right: -5%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, #06b6d4 0%, transparent 70%);
+        }
+
+        .glow-3 {
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, #312e81 0%, transparent 75%);
+            opacity: 0.25;
+        }
+
+        /* Top Header & Project Badge */
+        .top-nav {
+            position: fixed;
+            top: 20px;
+            left: 40px;
+            right: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .project-badge {
+            pointer-events: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        .project-badge .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--emerald);
+            box-shadow: 0 0 10px var(--emerald);
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(0.85);
+            }
+        }
+
+        .top-actions {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 8px 14px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .header-btn:hover {
+            color: #fff;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        /* Slide Container */
+        .slide-deck {
+            position: relative;
+            width: 90vw;
+            max-width: 1400px;
+            height: 82vh;
+            max-height: 880px;
+            z-index: 10;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 40px 50px;
+            opacity: 0;
+            transform: scale(0.96) translateY(25px);
+            transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: all;
+            z-index: 20;
+        }
+
+        /* Slide Headers */
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+            flex-shrink: 0;
+        }
+
+        .slide-title-group h2 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #FFFFFF 30%, #94A3B8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slide-title-group h2 i {
+            -webkit-text-fill-color: initial;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .slide-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .slide-tag {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #A5B4FC;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        /* Content Body */
+        .content-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .content-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .content-body::-webkit-scrollbar-thumb {
+            background: var(--card-border);
+            border-radius: 4px;
+        }
+
+        /* Typography Defaults */
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #E2E8F0;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        p {
+            font-size: 0.98rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Cards & Grids */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 22px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--card-hover-border);
+            box-shadow: 0 12px 25px -8px rgba(0, 0, 0, 0.5), 0 0 20px var(--primary-glow);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        /* Hero Slide (Slide 0) */
+        .title-slide {
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .hero-icon-container {
+            width: 90px;
+            height: 90px;
+            border-radius: 26px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.75rem;
+            color: #38BDF8;
+            margin-bottom: 24px;
+            box-shadow: 0 15px 35px -5px rgba(6, 182, 212, 0.4);
+            animation: float-icon 4s ease-in-out infinite;
+        }
+
+        @keyframes float-icon {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .title-slide h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -1px;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #A5B4FC 50%, #38BDF8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            max-width: 900px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-bottom: 28px;
+        }
+
+        .hero-pill-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.88rem;
+            color: #CBD5E1;
+        }
+
+        .hero-pill i {
+            color: var(--secondary);
+        }
+
+        .hero-footer-tip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 16px;
+            border-radius: 20px;
+        }
+
+        .hero-footer-tip kbd {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #E2E8F0;
+        }
+
+        /* -------------------------------------------------------------
+           INTERACTIVE ER DIAGRAM EXPLORER STYLES (Slide 5)
+        ------------------------------------------------------------- */
+        .er-explorer-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 20px;
+            height: 100%;
+            align-items: stretch;
+        }
+
+        .er-canvas-container {
+            background: rgba(10, 15, 30, 0.8);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .er-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            z-index: 5;
+            flex-wrap: wrap;
+        }
+
+        .er-filter-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .er-filter-btn.active,
+        .er-filter-btn:hover {
+            background: var(--primary);
+            color: #FFFFFF;
+            border-color: var(--primary);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        .er-nodes-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 14px;
+            position: relative;
+            align-content: center;
+        }
+
+        /* Node Box */
+        .er-node {
+            background: rgba(18, 26, 47, 0.9);
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .er-node:hover,
+        .er-node.selected {
+            transform: translateY(-3px) scale(1.03);
+            border-color: var(--secondary);
+            box-shadow: 0 8px 25px rgba(6, 182, 212, 0.35);
+            background: rgba(23, 34, 60, 0.95);
+        }
+
+        .er-node.associative {
+            border-style: dashed;
+            border-color: rgba(244, 63, 94, 0.5);
+        }
+
+        .er-node.associative:hover,
+        .er-node.associative.selected {
+            border-color: var(--accent);
+            box-shadow: 0 8px 25px var(--accent-glow);
+        }
+
+        .er-node-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .er-node-name {
+            font-size: 0.92rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #FFFFFF;
+        }
+
+        .er-node-name i {
+            color: var(--secondary);
+            font-size: 0.85rem;
+        }
+
+        .er-node.associative .er-node-name i {
+            color: var(--accent);
+        }
+
+        .er-node-tag {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .tag-core {
+            background: rgba(99, 102, 241, 0.2);
+            color: #A5B4FC;
+            border: 1px solid rgba(99, 102, 241, 0.4);
+        }
+
+        .tag-junction {
+            background: rgba(244, 63, 94, 0.2);
+            color: #FDA4AF;
+            border: 1px solid rgba(244, 63, 94, 0.4);
+        }
+
+        .tag-queue {
+            background: rgba(245, 158, 11, 0.2);
+            color: #FDE68A;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .er-node-keys-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .er-key-badge {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .er-key-badge.pk {
+            color: #FCD34D;
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .er-node-hint {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Relationship Connector Line Overlay (Visual Flair) */
+        .er-relations-summary {
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: var(--radius-sm);
+        }
+
+        /* Entity Inspector Sidebar */
+        .entity-inspector-panel {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .inspector-header {
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+        }
+
+        .inspector-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .inspector-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        .attributes-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 4px;
+        }
+
+        .attributes-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .attributes-list::-webkit-scrollbar-thumb {
+            background: var(--card-border);
+            border-radius: 4px;
+        }
+
+        .attribute-row {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .attribute-row:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .attr-main {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .attr-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #E2E8F0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .attr-type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--secondary);
+            background: rgba(6, 182, 212, 0.1);
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        .attr-badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-pk {
+            background: #F59E0B;
+            color: #000;
+        }
+
+        .badge-fk {
+            background: #6366F1;
+            color: #FFF;
+        }
+
+        .attr-detail {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        .inspector-relationships {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .rel-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.72rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-top: 4px;
+            margin-right: 4px;
+            color: var(--text-secondary);
+        }
+
+        /* -------------------------------------------------------------
+           TRADITIONAL CHEN ER DIAGRAM STYLES (Slide 5)
+        ------------------------------------------------------------- */
+        .traditional-er-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: rgba(8, 12, 22, 0.85);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .er-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .er-legend-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .legend-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+        }
+
+        .legend-icon-rect {
+            width: 14px;
+            height: 9px;
+            border-radius: 2px;
+            background: rgba(99, 102, 241, 0.3);
+            border: 1.5px solid #818CF8;
+        }
+
+        .legend-icon-double-rect {
+            width: 14px;
+            height: 9px;
+            border-radius: 2px;
+            background: rgba(244, 63, 94, 0.2);
+            border: 1.5px double #FB7185;
+            box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.5);
+        }
+
+        .legend-icon-diamond {
+            width: 10px;
+            height: 10px;
+            transform: rotate(45deg);
+            background: rgba(6, 182, 212, 0.3);
+            border: 1.5px solid #22D3EE;
+        }
+
+        .legend-icon-oval {
+            width: 15px;
+            height: 9px;
+            border-radius: 50%;
+            background: rgba(148, 163, 184, 0.2);
+            border: 1.2px solid #94A3B8;
+        }
+
+        .legend-icon-pk {
+            width: 15px;
+            height: 9px;
+            border-radius: 50%;
+            background: rgba(245, 158, 11, 0.25);
+            border: 1.2px solid #FCD34D;
+        }
+
+        .er-zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .er-ctrl-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .er-ctrl-btn:hover,
+        .er-ctrl-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .er-svg-wrapper {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-sm);
+            background: radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 0.6) 0%, rgba(8, 12, 22, 0.95) 100%);
+            cursor: grab;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .er-svg-wrapper:active {
+            cursor: grabbing;
+        }
+
+        .er-svg-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            transition: transform 0.15s ease-out;
+            transform-origin: 50% 50%;
+        }
+
+        /* SVG Traditional ER Styling */
+        .chen-entity {
+            fill: rgba(30, 41, 59, 0.88);
+            stroke: #6366F1;
+            stroke-width: 2;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .chen-entity:hover {
+            fill: rgba(49, 46, 129, 0.95);
+            stroke: #818CF8;
+            filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.6));
+        }
+
+        .chen-associative-outer {
+            fill: rgba(30, 41, 59, 0.88);
+            stroke: #F43F5E;
+            stroke-width: 1.5;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .chen-associative-inner {
+            fill: none;
+            stroke: #FDA4AF;
+            stroke-width: 1.2;
+            stroke-dasharray: 4, 2;
+        }
+
+        .chen-associative-group:hover .chen-associative-outer {
+            fill: rgba(136, 19, 55, 0.95);
+            stroke: #FB7185;
+            filter: drop-shadow(0 0 12px rgba(244, 63, 94, 0.6));
+        }
+
+        .chen-rel-diamond {
+            fill: rgba(15, 23, 42, 0.9);
+            stroke: #06B6D4;
+            stroke-width: 1.8;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .chen-rel-diamond:hover {
+            fill: rgba(12, 74, 96, 0.95);
+            stroke: #22D3EE;
+            filter: drop-shadow(0 0 12px rgba(6, 182, 212, 0.6));
+        }
+
+        .chen-attr-ellipse {
+            fill: rgba(15, 23, 42, 0.85);
+            stroke: #64748B;
+            stroke-width: 1.2;
+            transition: all 0.25s ease;
+        }
+
+        .chen-attr-group:hover .chen-attr-ellipse {
+            fill: rgba(30, 41, 59, 0.95);
+            stroke: #94A3B8;
+            filter: drop-shadow(0 0 6px rgba(148, 163, 184, 0.5));
+        }
+
+        .chen-attr-pk-ellipse {
+            fill: rgba(30, 27, 10, 0.88);
+            stroke: #F59E0B;
+            stroke-width: 1.8;
+            transition: all 0.25s ease;
+        }
+
+        .chen-attr-pk-group:hover .chen-attr-pk-ellipse {
+            fill: rgba(69, 39, 4, 0.95);
+            stroke: #FCD34D;
+            filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.6));
+        }
+
+        .chen-line {
+            stroke: rgba(148, 163, 184, 0.35);
+            stroke-width: 1.4;
+            stroke-linecap: round;
+        }
+
+        .chen-line-rel {
+            stroke: rgba(6, 182, 212, 0.45);
+            stroke-width: 1.6;
+        }
+
+        .chen-card-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            fill: #38BDF8;
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+        }
+
+        .chen-text-entity {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            fill: #FFFFFF;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        .chen-text-rel {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            fill: #67E8F9;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        .chen-text-attr {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            fill: #CBD5E1;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        .chen-text-pk {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            fill: #FDE68A;
+            text-anchor: middle;
+            text-decoration: underline;
+            pointer-events: none;
+        }
+
+        .chen-subsystem-hull {
+            fill: transparent;
+            stroke-width: 1.5;
+            stroke-dasharray: 6, 4;
+            opacity: 0.25;
+            transition: all 0.3s ease;
+        }
+
+        .faded-node {
+            opacity: 0.18 !important;
+            transition: opacity 0.3s ease;
+        }
+
+        /* -------------------------------------------------------------
+           SLIDE 2: 2 CORE PROBLEMS & RELATIONAL SOLUTIONS
+        ------------------------------------------------------------- */
+        .problems-dual-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            height: 100%;
+            align-content: stretch;
+        }
+
+        .problem-container-card {
+            background: rgba(18, 26, 47, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: var(--radius-md);
+            padding: 20px 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(14px);
+            transition: all 0.3s ease;
+        }
+
+        .problem-container-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.45);
+        }
+
+        .card-header-badge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .prob-num-tag {
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tag-p1 {
+            background: rgba(244, 63, 94, 0.15);
+            color: #FDA4AF;
+            border: 1px solid rgba(244, 63, 94, 0.35);
+        }
+
+        .tag-p2 {
+            background: rgba(245, 158, 11, 0.15);
+            color: #FDE68A;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+
+        .card-header-badge .tech-tag {
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .prob-sub-box {
+            background: rgba(244, 63, 94, 0.06);
+            border-left: 3px solid #F43F5E;
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+        }
+
+        .sol-sub-box {
+            background: rgba(16, 185, 129, 0.06);
+            border-left: 3px solid #10B981;
+            border-radius: 0 8px 8px 0;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+        }
+
+        .sub-box-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sub-box-title.flaw {
+            color: #FB7185;
+        }
+
+        .sub-box-title.sol {
+            color: #34D399;
+        }
+
+        .sub-box-text {
+            font-size: 0.86rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        .anomaly-chips {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip-flaw {
+            background: rgba(244, 63, 94, 0.12);
+            border: 1px solid rgba(244, 63, 94, 0.25);
+            color: #FECDD3;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .chip-sol {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: #A7F3D0;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .timeline-diagram {
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            font-size: 0.78rem;
+        }
+
+        .station-track {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            margin: 14px 0 10px 0;
+        }
+
+        .station-track::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #334155;
+            z-index: 1;
+        }
+
+        .st-node {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            z-index: 2;
+            position: relative;
+            box-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        .st-label {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.68rem;
+            white-space: nowrap;
+            color: var(--text-muted);
+        }
+
+        .seat-segment-bar {
+            height: 22px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        /* -------------------------------------------------------------
+           SLIDE 4 & 6: TABLES & CODE SCHEMAS
+        ------------------------------------------------------------- */
+        .schema-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .table-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        .table-tab-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            text-align: left;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .table-tab-btn:hover,
+        .table-tab-btn.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--primary);
+            color: #FFFFFF;
+        }
+
+        .schema-view-box {
+            background: #080C14;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            overflow-y: auto;
+        }
+
+        .code-block {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: #CBD5E1;
+            line-height: 1.6;
+        }
+
+        .sql-kw {
+            color: #F43F5E;
+            font-weight: 600;
+        }
+
+        .sql-tbl {
+            color: #38BDF8;
+            font-weight: 600;
+        }
+
+        .sql-col {
+            color: #E2E8F0;
+        }
+
+        .sql-type {
+            color: #A5B4FC;
+        }
+
+        /* Custom Table Styling */
+        table.custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
+        table.custom-table th {
+            background: rgba(30, 41, 59, 0.6);
+            color: #94A3B8;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.8px;
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        table.custom-table td {
+            padding: 10px 14px;
+            color: #E2E8F0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        table.custom-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Bottom Controls Bar */
+        .bottom-bar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 8px 20px;
+            border-radius: 50px;
+            z-index: 100;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #FFFFFF;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: scale(1.08);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .slide-dots {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            width: 24px;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .slide-counter {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            padding: 0 6px;
+        }
+
+        /* Presenter Pitch Notes Drawer */
+        .pitch-drawer {
+            position: fixed;
+            bottom: -320px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80vw;
+            max-width: 1000px;
+            height: 300px;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--primary);
+            border-radius: 20px 20px 0 0;
+            z-index: 200;
+            padding: 24px 30px;
+            transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pitch-drawer.open {
+            bottom: 0;
+        }
+
+        .pitch-drawer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+
+        .pitch-drawer-header h4 {
+            font-size: 1rem;
+            color: #A5B4FC;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pitch-content {
+            flex: 1;
+            overflow-y: auto;
+            color: #E2E8F0;
+            font-size: 1rem;
+            line-height: 1.7;
+            font-family: 'Lora', serif;
+            font-style: italic;
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Background Orbs -->
+    <div class="bg-glow glow-1"></div>
+    <div class="bg-glow glow-2"></div>
+    <div class="bg-glow glow-3"></div>
+
+    <!-- Top Navigation -->
+    <header class="top-nav">
+        <div class="project-badge">
+            <span class="badge-dot"></span>
+            <span>DBMS Review 1 • Relational Architecture</span>
+        </div>
+        <div class="top-actions">
+            <button class="header-btn" onclick="togglePitchDrawer()" title="Speaker pitch script">
+                <i class="fa-solid fa-microphone-lines"></i>
+                <span>Pitch Script</span>
+            </button>
+            <button class="header-btn" onclick="toggleFullScreen()" title="Toggle Fullscreen">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Slide Deck -->
+    <main class="slide-deck">
+
+        <!-- SLIDE 0: TITLE HERO -->
+        <section class="slide active title-slide" id="slide-0">
+            <div class="hero-icon-container">
+                <i class="fa-solid fa-train-subway"></i>
+            </div>
+            <h1>Railway Ticket Reservation &<br>Journey Management System</h1>
+            <p class="hero-subtitle">High-Concurrency Segment-Based Relational Database Architecture</p>
+
+            <div class="hero-pill-group">
+                <div class="hero-pill"><i class="fa-solid fa-database"></i> 3NF Normalized</div>
+                <div class="hero-pill"><i class="fa-solid fa-shield-halved"></i> Segment Conflict Resolution</div>
+                <div class="hero-pill"><i class="fa-solid fa-arrow-up-right-dots"></i> Dynamic Waitlist Cascade</div>
+                <div class="hero-pill"><i class="fa-solid fa-diagram-project"></i> MySQL 8.0 DDL Ready</div>
+            </div>
+
+            <div class="hero-footer-tip">
+                <i class="fa-regular fa-keyboard"></i>
+                <span>Navigate with <kbd>←</kbd> <kbd>→</kbd> or Bottom Dock • Press <kbd>P</kbd> for Pitch Script</span>
+            </div>
+        </section>
+
+        <!-- SLIDE 1: OBJECTIVES & ACTORS -->
+        <section class="slide" id="slide-1">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-bullseye"></i> 1. Objectives & Target Users</h2>
+                    <p class="slide-subtitle">Functional boundaries and system actor modeling</p>
+                </div>
+                <span class="slide-tag">Architecture Goals</span>
+            </div>
+
+            <div class="content-body">
+                <div class="grid-2" style="margin-bottom: 20px;">
+                    <div class="card">
+                        <h3><i class="fa-solid fa-layer-group" style="color:var(--primary);"></i> Primary Objectives</h3>
+                        <ul style="list-style:none; display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+                            <li style="display:flex; gap:10px; font-size:0.92rem; color:var(--text-secondary);">
+                                <i class="fa-solid fa-check" style="color:var(--emerald); margin-top:3px;"></i>
+                                <span><strong>Conceptual ER Modeling:</strong> Cover 10 interconnected entities resolving M:N junction dependencies.</span>
+                            </li>
+                            <li style="display:flex; gap:10px; font-size:0.92rem; color:var(--text-secondary);">
+                                <i class="fa-solid fa-check" style="color:var(--emerald); margin-top:3px;"></i>
+                                <span><strong>3NF Normalization:</strong> Zero transitive dependency; eliminate insertion, update, and deletion anomalies.</span>
+                            </li>
+                            <li style="display:flex; gap:10px; font-size:0.92rem; color:var(--emerald); margin-top:3px;">
+                                <i class="fa-solid fa-check" style="color:var(--emerald); margin-top:3px;"></i>
+                                <span style="color:var(--text-secondary);"><strong>Segment Integrity:</strong> Hard constraints guaranteeing no duplicate seat allocations per hop.</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fa-solid fa-users-gear" style="color:var(--secondary);"></i> Target System Users</h3>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:8px;">
+                            <div style="background:rgba(255,255,255,0.03); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-weight:700; color:#38BDF8; font-size:0.88rem; margin-bottom:4px;"><i class="fa-solid fa-user"></i> Passengers</div>
+                                <div style="font-size:0.78rem; color:var(--text-muted);">Search trains, check segment availability, book PNRs, manage cancellations.</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-weight:700; color:#A5B4FC; font-size:0.88rem; margin-bottom:4px;"><i class="fa-solid fa-user-shield"></i> Railway Admins</div>
+                                <div style="font-size:0.78rem; color:var(--text-muted);">Configure train routes, assign stop sequences, monitor occupancy & revenue.</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03); padding:12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); grid-column:span 2;">
+                                <div style="font-weight:700; color:#FCD34D; font-size:0.88rem; margin-bottom:4px;"><i class="fa-solid fa-robot"></i> Automated Engine (Background)</div>
+                                <div style="font-size:0.78rem; color:var(--text-muted);">Auto-cascades waitlisted PNRs to Confirmed status upon cancellations in FIFO order.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 2: 2 CORE PROBLEMS & RELATIONAL SOLUTIONS -->
+        <section class="slide" id="slide-2">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-triangle-exclamation"></i> 2. Problem Identification & Scope</h2>
+                    <p class="slide-subtitle">Resolving data anomalies and multi-hop seat clashes through relational normalization</p>
+                </div>
+                <span class="slide-tag">Core Challenges & Solutions</span>
+            </div>
+
+            <div class="content-body">
+                <div class="problems-dual-grid">
+                    <!-- PROBLEM 1: DATA ANOMALIES & 3NF NORMALIZATION -->
+                    <div class="problem-container-card">
+                        <div class="card-header-badge">
+                            <span class="prob-num-tag tag-p1"><i class="fa-solid fa-circle-exclamation"></i> Problem 1: Data Anomalies & Redundancy</span>
+                            <span class="tech-tag">Schema Architecture</span>
+                        </div>
+
+                        <div class="prob-sub-box">
+                            <div class="sub-box-title flaw"><i class="fa-solid fa-xmark"></i> The Flaw: Monolithic Unnormalized Data</div>
+                            <p class="sub-box-text">Naive systems combine train schedules, stations, and passenger bookings into denormalized tables, triggering dangerous data corruption:</p>
+                            <div class="anomaly-chips">
+                                <span class="chip-flaw"><i class="fa-solid fa-triangle-exclamation"></i> Insertion Anomaly</span>
+                                <span class="chip-flaw"><i class="fa-solid fa-pen-to-square"></i> Update Inconsistency</span>
+                                <span class="chip-flaw"><i class="fa-solid fa-trash-can"></i> Deletion Data Loss</span>
+                            </div>
+                        </div>
+
+                        <div class="sol-sub-box">
+                            <div class="sub-box-title sol"><i class="fa-solid fa-check"></i> Our Relational Solution: 3NF Entity Decomposition</div>
+                            <p class="sub-box-text">We decomposed the schema into <strong>10 individual atomic entity tables</strong> (<code>Train</code>, <code>Station</code>, <code>Coach</code>, <code>Seat</code>, <code>Passenger</code>, etc.). Every non-key attribute depends <em>strictly</em> on the Primary Key with zero transitive dependencies.</p>
+                            <div class="anomaly-chips" style="margin-top:6px;">
+                                <span class="chip-sol"><i class="fa-solid fa-table"></i> 10 Atomic Tables</span>
+                                <span class="chip-sol"><i class="fa-solid fa-shield-check"></i> Zero Transitive Dependency</span>
+                                <span class="chip-sol"><i class="fa-solid fa-database"></i> 100% 3NF Integrity</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROBLEM 2: SEAT OVERLAP & SEGMENT-WISE ALLOCATION -->
+                    <div class="problem-container-card">
+                        <div class="card-header-badge">
+                            <span class="prob-num-tag tag-p2"><i class="fa-solid fa-route"></i> Problem 2: Monolithic Seat Overlap</span>
+                            <span class="tech-tag">Concurrency Model</span>
+                        </div>
+
+                        <div class="prob-sub-box">
+                            <div class="sub-box-title flaw"><i class="fa-solid fa-xmark"></i> The Flaw: End-to-End Route Seat Locking</div>
+                            <p class="sub-box-text">Locking an entire seat for the full train run blocks valid intermediate passengers (huge revenue loss) or causes double-booking seat clashes when multiple legs are booked.</p>
+                            <div class="seat-segment-bar" style="background: rgba(244, 63, 94, 0.2); color:#FDA4AF; border:1px solid rgba(244,63,94,0.4); margin-top:6px;">
+                                Clashing Whole-Route Lock (Delhi → Varanasi) [BLOCKED]
+                            </div>
+                        </div>
+
+                        <div class="sol-sub-box">
+                            <div class="sub-box-title sol"><i class="fa-solid fa-check"></i> Our Relational Solution: Segment-Wise Granular Allocation</div>
+                            <p class="sub-box-text">Introduced the associative <code>JOURNEY_SEGMENT</code> entity. A seat is partitioned into atomic station-to-station legs, enabling multiple passengers to share the same physical seat across disjoint legs with zero conflicts.</p>
+                            <div class="timeline-diagram">
+                                <div style="display:flex; justify-content:space-between; color:#94A3B8; font-weight:600; font-size:0.7rem;">
+                                    <span>Delhi (1)</span><span>Agra (2)</span><span>Kanpur (3)</span><span>Varanasi (4)</span>
+                                </div>
+                                <div class="station-track">
+                                    <div class="st-node"></div>
+                                    <div class="st-node"></div>
+                                    <div class="st-node"></div>
+                                    <div class="st-node"></div>
+                                </div>
+                                <div style="display:grid; grid-template-columns: 1fr 2fr; gap:6px;">
+                                    <div class="seat-segment-bar" style="background: rgba(16, 185, 129, 0.25); color:#6EE7B7; border:1px solid rgba(16, 185, 129, 0.45);">
+                                        User A (1→2)
+                                    </div>
+                                    <div class="seat-segment-bar" style="background: rgba(6, 182, 212, 0.25); color:#67E8F9; border:1px solid rgba(6, 182, 212, 0.45);">
+                                        User B (2→4) [NO CONFLICT]
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 3: INTERACTIVE ER DIAGRAM EXPLORER (CORE FEATURE) -->
+        <section class="slide" id="slide-3">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-diagram-project"></i> 3. Interactive Conceptual ER Explorer</h2>
+                    <p class="slide-subtitle">Hover or click any Entity to inspect its full attribute list, keys, and relational schema</p>
+                </div>
+                <span class="slide-tag" style="background:rgba(6,182,212,0.2); color:#67E8F9; border-color:var(--secondary);">
+                    <i class="fa-solid fa-hand-pointer"></i> Interactive Explorer
+                </span>
+            </div>
+
+            <div class="content-body">
+                <div class="er-explorer-layout">
+                    <!-- Canvas -->
+                    <div class="er-canvas-container">
+                        <div class="er-filter-bar">
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-right:4px;">Filter Subsystem:</span>
+                            <button class="er-filter-btn active" onclick="filterEntities('all')">All (10 Entities)</button>
+                            <button class="er-filter-btn" onclick="filterEntities('route')">Train & Route</button>
+                            <button class="er-filter-btn" onclick="filterEntities('booking')">Booking & Seats</button>
+                            <button class="er-filter-btn" onclick="filterEntities('finance')">Queue & Payment</button>
+                        </div>
+
+                        <div class="er-nodes-grid" id="erNodesGrid">
+                            <!-- Populated dynamically via JS for high interactivity -->
+                        </div>
+
+                        <div class="er-relations-summary">
+                            <span><i class="fa-solid fa-circle-info" style="color:var(--secondary);"></i> Tip: Solid border = Strong Entity, Dashed border = Associative / Junction Entity</span>
+                            <span id="selectedEntityStatus" style="font-family:'JetBrains Mono'; color:#A5B4FC;">Selected: TRAIN</span>
+                        </div>
+                    </div>
+
+                    <!-- Inspector Panel -->
+                    <aside class="entity-inspector-panel">
+                        <div class="inspector-header">
+                            <div class="inspector-title" id="inspectorTitle">
+                                <i class="fa-solid fa-train"></i> TRAIN
+                            </div>
+                            <p class="inspector-desc" id="inspectorDesc">Master catalog representing physical train fleets operating across the railway network.</p>
+                        </div>
+
+                        <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+                            Attributes & Schema:
+                        </div>
+
+                        <div class="attributes-list" id="attributesList">
+                            <!-- Populated by JS -->
+                        </div>
+
+                        <div class="inspector-relationships">
+                            <div style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Connected Relationships:</div>
+                            <div id="relationshipsList">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 4: TRADITIONAL CHEN ER DIAGRAM -->
+        <section class="slide" id="slide-4">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-shapes"></i> 4. Traditional Conceptual E-R Diagram (Chen's Model)</h2>
+                    <p class="slide-subtitle">Formal Chen notation featuring Entities, Associative Entities, Relationships, and Keyed Attributes</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="slide-tag" style="background:rgba(99,102,241,0.2); color:#A5B4FC; border-color:var(--primary);">
+                        <i class="fa-solid fa-project-diagram"></i> Peter Chen Model
+                    </span>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <div class="traditional-er-container">
+                    <!-- Top Toolbar & Notation Legend -->
+                    <div class="er-toolbar">
+                        <div class="er-legend-bar">
+                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Chen Legend:</span>
+                            <div class="legend-pill"><span class="legend-icon-rect"></span> Strong Entity</div>
+                            <div class="legend-pill"><span class="legend-icon-double-rect"></span> Associative Entity</div>
+                            <div class="legend-pill"><span class="legend-icon-diamond"></span> Relationship</div>
+                            <div class="legend-pill"><span class="legend-icon-oval"></span> Attribute</div>
+                            <div class="legend-pill"><span class="legend-icon-pk"></span> <u>Primary Key</u></div>
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="er-filter-bar" style="margin-bottom:0;">
+                                <button class="er-ctrl-btn active" id="btn-subsystem-all" onclick="filterTraditionalER('all')">All Subsystems</button>
+                                <button class="er-ctrl-btn" id="btn-subsystem-route" onclick="filterTraditionalER('route')">Train & Route</button>
+                                <button class="er-ctrl-btn" id="btn-subsystem-seat" onclick="filterTraditionalER('seat')">Coach & Seats</button>
+                                <button class="er-ctrl-btn" id="btn-subsystem-booking" onclick="filterTraditionalER('booking')">Booking & Queue</button>
+                            </div>
+                            <div class="er-zoom-controls">
+                                <button class="er-ctrl-btn" onclick="zoomTraditionalER(0.15)" title="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                                <button class="er-ctrl-btn" onclick="zoomTraditionalER(-0.15)" title="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                                <button class="er-ctrl-btn" onclick="resetTraditionalER()" title="Reset Zoom"><i class="fa-solid fa-rotate-left"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SVG ER Canvas Container -->
+                    <div class="er-svg-wrapper" id="erSvgWrapper" onmousedown="startErPan(event)" onmousemove="doErPan(event)" onmouseup="endErPan()" onmouseleave="endErPan()" onwheel="handleErWheel(event)">
+                        <svg class="er-svg-canvas" id="erSvgCanvas" viewBox="0 0 1480 770" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <linearGradient id="chenGradEntity" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#1E293B"/>
+                                    <stop offset="100%" stop-color="#0F172A"/>
+                                </linearGradient>
+                                <linearGradient id="chenGradAssoc" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#2D121B"/>
+                                    <stop offset="100%" stop-color="#140A10"/>
+                                </linearGradient>
+                                <linearGradient id="chenGradRel" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#0E3A4B"/>
+                                    <stop offset="100%" stop-color="#091E28"/>
+                                </linearGradient>
+                                <linearGradient id="chenGradPK" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#3D2906"/>
+                                    <stop offset="100%" stop-color="#1C1202"/>
+                                </linearGradient>
+                                <linearGradient id="chenGradAttr" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#1E2433"/>
+                                    <stop offset="100%" stop-color="#0D111A"/>
+                                </linearGradient>
+                            </defs>
+
+                            <!-- Subsystem Regional Markers / Faint Outlines -->
+                            <rect class="chen-subsystem-hull" id="hull-route" x="20" y="20" width="1020" height="290" rx="14" stroke="#6366F1"/>
+                            <text x="35" y="42" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" fill="#818CF8" opacity="0.6">SUBSYSTEM 1: FLEET & ROUTE NETWORK</text>
+
+                            <rect class="chen-subsystem-hull" id="hull-seat" x="20" y="325" width="670" height="425" rx="14" stroke="#10B981"/>
+                            <text x="35" y="347" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" fill="#34D399" opacity="0.6">SUBSYSTEM 2: COACH, SEAT & SEGMENT CONCURRENCY</text>
+
+                            <rect class="chen-subsystem-hull" id="hull-booking" x="710" y="20" width="750" height="730" rx="14" stroke="#F59E0B"/>
+                            <text x="725" y="42" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" fill="#FBBF24" opacity="0.6">SUBSYSTEM 3: PASSENGER, BOOKING, QUEUE & PAYMENT</text>
+
+                            <!-- ========================================================
+                                 1. ROUTE SUBSYSTEM (TRAIN, STATION, ROUTE_STOP, SCHEDULE)
+                                 ======================================================== -->
+                            <!-- TRAIN ENTITY -->
+                            <g class="chen-subsystem chen-route" id="node-train">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="145" y1="135" x2="80" y2="88"/>
+                                <line class="chen-line" x1="185" y1="135" x2="185" y2="73"/>
+                                <line class="chen-line" x1="225" y1="135" x2="290" y2="88"/>
+                                
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="80" cy="70" rx="46" ry="18"/>
+                                    <text class="chen-text-pk" x="80" y="74">TrainID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="185" cy="55" rx="38" ry="18"/>
+                                    <text class="chen-text-attr" x="185" y="59">Name</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="290" cy="70" rx="38" ry="18"/>
+                                    <text class="chen-text-attr" x="290" y="74">Type</text>
+                                </g>
+
+                                <!-- Entity Rectangle -->
+                                <rect class="chen-entity" x="120" y="135" width="130" height="48" rx="8"/>
+                                <text class="chen-text-entity" x="185" y="164">TRAIN</text>
+                            </g>
+
+                            <!-- [COVERS] RELATIONSHIP -->
+                            <g class="chen-subsystem chen-route" id="rel-covers">
+                                <line class="chen-line-rel" x1="250" y1="159" x2="315" y2="159"/>
+                                <line class="chen-line-rel" x1="405" y1="159" x2="475" y2="159"/>
+                                <text class="chen-card-badge" x="265" y="151">1</text>
+                                <text class="chen-card-badge" x="450" y="151">N</text>
+                                <polygon class="chen-rel-diamond" points="360,135 405,159 360,183 315,159"/>
+                                <text class="chen-text-rel" x="360" y="163">COVERS</text>
+                            </g>
+
+                            <!-- ROUTE_STOP ASSOCIATIVE ENTITY (Double Rect) -->
+                            <g class="chen-subsystem chen-route" id="node-routestop">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="510" y1="131" x2="450" y2="78"/>
+                                <line class="chen-line" x1="560" y1="131" x2="560" y2="73"/>
+                                <line class="chen-line" x1="610" y1="131" x2="670" y2="78"/>
+                                <line class="chen-line" x1="510" y1="187" x2="450" y2="232"/>
+                                <line class="chen-line" x1="610" y1="187" x2="670" y2="232"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="450" cy="60" rx="46" ry="18"/>
+                                    <text class="chen-text-pk" x="450" y="64">RouteID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="560" cy="55" rx="54" ry="18"/>
+                                    <text class="chen-text-attr" x="560" y="59">StopSequence</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="670" cy="60" rx="50" ry="18"/>
+                                    <text class="chen-text-attr" x="670" y="64">ArrivalTime</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="450" cy="245" rx="54" ry="18"/>
+                                    <text class="chen-text-attr" x="450" y="249">DepartureTime</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="670" cy="245" rx="44" ry="18"/>
+                                    <text class="chen-text-attr" x="670" y="249">Distance</text>
+                                </g>
+
+                                <!-- Double Rectangle -->
+                                <g class="chen-associative-group">
+                                    <rect class="chen-associative-outer" x="475" y="131" width="170" height="56" rx="8"/>
+                                    <rect class="chen-associative-inner" x="481" y="137" width="158" height="44" rx="6"/>
+                                    <text class="chen-text-entity" x="560" y="164">ROUTE_STOP</text>
+                                </g>
+                            </g>
+
+                            <!-- [LOCATED_AT] RELATIONSHIP -->
+                            <g class="chen-subsystem chen-route" id="rel-located">
+                                <line class="chen-line-rel" x1="645" y1="159" x2="715" y2="159"/>
+                                <line class="chen-line-rel" x1="805" y1="159" x2="875" y2="159"/>
+                                <text class="chen-card-badge" x="665" y="151">N</text>
+                                <text class="chen-card-badge" x="855" y="151">1</text>
+                                <polygon class="chen-rel-diamond" points="760,135 805,159 760,183 715,159"/>
+                                <text class="chen-text-rel" x="760" y="163">STOPS_AT</text>
+                            </g>
+
+                            <!-- STATION ENTITY -->
+                            <g class="chen-subsystem chen-route" id="node-station">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="900" y1="135" x2="850" y2="88"/>
+                                <line class="chen-line" x1="940" y1="135" x2="945" y2="73"/>
+                                <line class="chen-line" x1="980" y1="135" x2="1035" y2="88"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="850" cy="70" rx="48" ry="18"/>
+                                    <text class="chen-text-pk" x="850" y="74">StationID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="945" cy="55" rx="38" ry="18"/>
+                                    <text class="chen-text-attr" x="945" y="59">Name</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1035" cy="70" rx="36" ry="18"/>
+                                    <text class="chen-text-attr" x="1035" y="74">City</text>
+                                </g>
+
+                                <!-- Entity Rectangle -->
+                                <rect class="chen-entity" x="875" y="135" width="130" height="48" rx="8"/>
+                                <text class="chen-text-entity" x="940" y="164">STATION</text>
+                            </g>
+
+                            <!-- [SCHEDULED_ON] RELATIONSHIP -->
+                            <g class="chen-subsystem chen-route" id="rel-scheduled">
+                                <line class="chen-line-rel" x1="225" y1="183" x2="330" y2="265"/>
+                                <line class="chen-line-rel" x1="390" y1="285" x2="495" y2="365"/>
+                                <text class="chen-card-badge" x="255" y="215">1</text>
+                                <text class="chen-card-badge" x="465" y="340">N</text>
+                                <polygon class="chen-rel-diamond" points="360,250 405,275 360,300 315,275"/>
+                                <text class="chen-text-rel" x="360" y="279">OPERATES</text>
+                            </g>
+
+                            <!-- SCHEDULE ENTITY -->
+                            <g class="chen-subsystem chen-route" id="node-schedule">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="520" y1="413" x2="465" y2="452"/>
+                                <line class="chen-line" x1="580" y1="413" x2="580" y2="442"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="450" cy="465" rx="52" ry="18"/>
+                                    <text class="chen-text-pk" x="450" y="469">ScheduleID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="580" cy="460" rx="50" ry="18"/>
+                                    <text class="chen-text-attr" x="580" y="464">JourneyDate</text>
+                                </g>
+
+                                <!-- Entity Rectangle -->
+                                <rect class="chen-entity" x="495" y="365" width="130" height="48" rx="8"/>
+                                <text class="chen-text-entity" x="560" y="394">SCHEDULE</text>
+                            </g>
+
+                            <!-- ========================================================
+                                 2. COACH & SEAT SUBSYSTEM (COACH, SEAT, JOURNEY_SEGMENT)
+                                 ======================================================== -->
+                            <!-- [HAS_COACH] RELATIONSHIP -->
+                            <g class="chen-subsystem chen-seat" id="rel-hascoach">
+                                <line class="chen-line-rel" x1="185" y1="183" x2="185" y2="250"/>
+                                <line class="chen-line-rel" x1="185" y1="300" x2="185" y2="365"/>
+                                <text class="chen-card-badge" x="198" y="215">1</text>
+                                <text class="chen-card-badge" x="198" y="335">N</text>
+                                <polygon class="chen-rel-diamond" points="185,250 230,275 185,300 140,275"/>
+                                <text class="chen-text-rel" x="185" y="279">HAS_COACH</text>
+                            </g>
+
+                            <!-- COACH ENTITY -->
+                            <g class="chen-subsystem chen-seat" id="node-coach">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="120" y1="375" x2="95" y2="345"/>
+                                <line class="chen-line" x1="120" y1="389" x2="96" y2="390"/>
+                                <line class="chen-line" x1="120" y1="403" x2="95" y2="435"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="55" cy="335" rx="44" ry="18"/>
+                                    <text class="chen-text-pk" x="55" y="339">CoachID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="50" cy="390" rx="46" ry="18"/>
+                                    <text class="chen-text-attr" x="50" y="394">CoachType</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="55" cy="445" rx="44" ry="18"/>
+                                    <text class="chen-text-attr" x="55" y="449">TotalSeats</text>
+                                </g>
+
+                                <!-- Entity Rectangle -->
+                                <rect class="chen-entity" x="120" y="365" width="130" height="48" rx="8"/>
+                                <text class="chen-text-entity" x="185" y="394">COACH</text>
+                            </g>
+
+                            <!-- [CONTAINS] RELATIONSHIP -->
+                            <g class="chen-subsystem chen-seat" id="rel-contains">
+                                <line class="chen-line-rel" x1="185" y1="413" x2="185" y2="480"/>
+                                <line class="chen-line-rel" x1="185" y1="530" x2="185" y2="595"/>
+                                <text class="chen-card-badge" x="198" y="445">1</text>
+                                <text class="chen-card-badge" x="198" y="565">N</text>
+                                <polygon class="chen-rel-diamond" points="185,480 230,505 185,530 140,505"/>
+                                <text class="chen-text-rel" x="185" y="509">CONTAINS</text>
+                            </g>
+
+                            <!-- SEAT ENTITY -->
+                            <g class="chen-subsystem chen-seat" id="node-seat">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="120" y1="605" x2="95" y2="575"/>
+                                <line class="chen-line" x1="120" y1="619" x2="98" y2="620"/>
+                                <line class="chen-line" x1="120" y1="633" x2="95" y2="665"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="55" cy="565" rx="42" ry="18"/>
+                                    <text class="chen-text-pk" x="55" y="569">SeatID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="50" cy="620" rx="48" ry="18"/>
+                                    <text class="chen-text-attr" x="50" y="624">SeatNumber</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="55" cy="675" rx="44" ry="18"/>
+                                    <text class="chen-text-attr" x="55" y="679">BerthType</text>
+                                </g>
+
+                                <!-- Entity Rectangle -->
+                                <rect class="chen-entity" x="120" y="595" width="130" height="48" rx="8"/>
+                                <text class="chen-text-entity" x="185" y="624">SEAT</text>
+                            </g>
+
+                            <!-- [ALLOCATES] RELATIONSHIP (Seat -> Journey_Segment) -->
+                            <g class="chen-subsystem chen-seat" id="rel-allocates">
+                                <line class="chen-line-rel" x1="250" y1="619" x2="300" y2="619"/>
+                                <line class="chen-line-rel" x1="390" y1="619" x2="465" y2="619"/>
+                                <text class="chen-card-badge" x="265" y="611">1</text>
+                                <text class="chen-card-badge" x="435" y="611">N</text>
+                                <polygon class="chen-rel-diamond" points="345,595 390,619 345,643 300,619"/>
+                                <text class="chen-text-rel" x="345" y="623">ALLOCATES</text>
+                            </g>
+
+                            <!-- [RUNS_ON] RELATIONSHIP (Schedule -> Journey_Segment) -->
+                            <g class="chen-subsystem chen-seat" id="rel-runson">
+                                <line class="chen-line-rel" x1="560" y1="413" x2="560" y2="480"/>
+                                <line class="chen-line-rel" x1="560" y1="530" x2="560" y2="589"/>
+                                <text class="chen-card-badge" x="572" y="445">1</text>
+                                <text class="chen-card-badge" x="572" y="565">N</text>
+                                <polygon class="chen-rel-diamond" points="560,480 605,505 560,530 515,505"/>
+                                <text class="chen-text-rel" x="560" y="509">RUNS_ON</text>
+                            </g>
+
+                            <!-- JOURNEY_SEGMENT ASSOCIATIVE JUNCTION (Double Rect) -->
+                            <g class="chen-subsystem chen-seat" id="node-segment">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="510" y1="649" x2="460" y2="702"/>
+                                <line class="chen-line" x1="610" y1="649" x2="650" y2="702"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="450" cy="715" rx="52" ry="18"/>
+                                    <text class="chen-text-pk" x="450" y="719">SegmentID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="650" cy="715" rx="42" ry="18"/>
+                                    <text class="chen-text-attr" x="650" y="719">Status</text>
+                                </g>
+
+                                <!-- Double Rectangle -->
+                                <g class="chen-associative-group">
+                                    <rect class="chen-associative-outer" x="465" y="589" width="190" height="60" rx="8"/>
+                                    <rect class="chen-associative-inner" x="471" y="595" width="178" height="48" rx="6"/>
+                                    <text class="chen-text-entity" x="560" y="624">JOURNEY_SEGMENT</text>
+                                </g>
+                            </g>
+
+                            <!-- ========================================================
+                                 3. PASSENGER, BOOKING, QUEUE & PAYMENT SUBSYSTEM
+                                 ======================================================== -->
+                            <!-- PASSENGER ENTITY -->
+                            <g class="chen-subsystem chen-booking" id="node-passenger">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="1370" y1="365" x2="1410" y2="318"/>
+                                <line class="chen-line" x1="1395" y1="380" x2="1425" y2="360"/>
+                                <line class="chen-line" x1="1395" y1="400" x2="1425" y2="415"/>
+                                <line class="chen-line" x1="1350" y1="413" x2="1375" y2="462"/>
+                                <line class="chen-line" x1="1290" y1="413" x2="1280" y2="462"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="1415" cy="305" rx="54" ry="18"/>
+                                    <text class="chen-text-pk" x="1415" y="309">PassengerID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1425" cy="360" rx="45" ry="18"/>
+                                    <text class="chen-text-attr" x="1425" y="364">FirstName</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1425" cy="415" rx="45" ry="18"/>
+                                    <text class="chen-text-attr" x="1425" y="419">LastName</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1380" cy="475" rx="35" ry="18"/>
+                                    <text class="chen-text-attr" x="1380" y="479">Age</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1275" cy="475" rx="40" ry="18"/>
+                                    <text class="chen-text-attr" x="1275" y="479">Gender</text>
+                                </g>
+
+                                <!-- Entity Rectangle -->
+                                <rect class="chen-entity" x="1245" y="365" width="150" height="48" rx="8"/>
+                                <text class="chen-text-entity" x="1320" y="394">PASSENGER</text>
+                            </g>
+
+                            <!-- [MAKES] RELATIONSHIP -->
+                            <g class="chen-subsystem chen-booking" id="rel-makes">
+                                <line class="chen-line-rel" x1="1245" y1="389" x2="1185" y2="389"/>
+                                <line class="chen-line-rel" x1="1095" y1="389" x2="1015" y2="389"/>
+                                <text class="chen-card-badge" x="1215" y="381">1</text>
+                                <text class="chen-card-badge" x="1045" y="381">N</text>
+                                <polygon class="chen-rel-diamond" points="1140,365 1185,389 1140,413 1095,389"/>
+                                <text class="chen-text-rel" x="1140" y="393">MAKES</text>
+                            </g>
+
+                            <!-- BOOKING ENTITY -->
+                            <g class="chen-subsystem chen-booking" id="node-booking">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="885" y1="365" x2="840" y2="310"/>
+                                <line class="chen-line" x1="940" y1="365" x2="940" y2="303"/>
+                                <line class="chen-line" x1="995" y1="365" x2="1035" y2="310"/>
+                                <line class="chen-line" x1="995" y1="413" x2="1035" y2="445"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="835" cy="295" rx="44" ry="18"/>
+                                    <text class="chen-text-pk" x="835" y="299">PNRID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="940" cy="285" rx="52" ry="18"/>
+                                    <text class="chen-text-attr" x="940" y="289">BookingDate</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1040" cy="295" rx="46" ry="18"/>
+                                    <text class="chen-text-attr" x="1040" y="299">TotalFare</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1040" cy="460" rx="40" ry="18"/>
+                                    <text class="chen-text-attr" x="1040" y="464">Status</text>
+                                </g>
+
+                                <!-- Entity Rectangle -->
+                                <rect class="chen-entity" x="865" y="365" width="150" height="48" rx="8"/>
+                                <text class="chen-text-entity" x="940" y="394">BOOKING</text>
+                            </g>
+
+                            <!-- [INCLUDES] RELATIONSHIP (Booking -> Journey_Segment) -->
+                            <g class="chen-subsystem chen-booking" id="rel-includes">
+                                <line class="chen-line-rel" x1="885" y1="413" x2="795" y2="515"/>
+                                <line class="chen-line-rel" x1="715" y1="545" x2="655" y2="595"/>
+                                <text class="chen-card-badge" x="850" y="450">1</text>
+                                <text class="chen-card-badge" x="680" y="585">N</text>
+                                <polygon class="chen-rel-diamond" points="755,505 800,530 755,555 710,530"/>
+                                <text class="chen-text-rel" x="755" y="534">INCLUDES</text>
+                            </g>
+
+                            <!-- [PAID_VIA] RELATIONSHIP (Booking -> Payment, 1:1) -->
+                            <g class="chen-subsystem chen-booking" id="rel-paidvia">
+                                <line class="chen-line-rel" x1="985" y1="365" x2="1170" y2="180"/>
+                                <line class="chen-line-rel" x1="1250" y1="160" x2="1305" y2="160"/>
+                                <text class="chen-card-badge" x="1045" y="290">1</text>
+                                <text class="chen-card-badge" x="1275" y="150">1</text>
+                                <polygon class="chen-rel-diamond" points="1210,135 1255,160 1210,185 1165,160"/>
+                                <text class="chen-text-rel" x="1210" y="164">PAID_VIA</text>
+                            </g>
+
+                            <!-- PAYMENT ENTITY -->
+                            <g class="chen-subsystem chen-booking" id="node-payment">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="1335" y1="135" x2="1310" y2="83"/>
+                                <line class="chen-line" x1="1385" y1="135" x2="1410" y2="83"/>
+                                <line class="chen-line" x1="1435" y1="150" x2="1450" y2="135"/>
+                                <line class="chen-line" x1="1435" y1="170" x2="1450" y2="185"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="1310" cy="65" rx="48" ry="18"/>
+                                    <text class="chen-text-pk" x="1310" y="69">PaymentID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1410" cy="65" rx="40" ry="18"/>
+                                    <text class="chen-text-attr" x="1410" y="69">Amount</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1450" cy="125" rx="50" ry="18"/>
+                                    <text class="chen-text-attr" x="1450" y="129">PaymentDate</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1450" cy="195" rx="42" ry="18"/>
+                                    <text class="chen-text-attr" x="1450" y="199">Method</text>
+                                </g>
+
+                                <!-- Entity Rectangle -->
+                                <rect class="chen-entity" x="1305" y="135" width="130" height="48" rx="8"/>
+                                <text class="chen-text-entity" x="1370" y="164">PAYMENT</text>
+                            </g>
+
+                            <!-- [QUEUED_IN] RELATIONSHIP (Booking -> Waitlist) -->
+                            <g class="chen-subsystem chen-booking" id="rel-queuedin">
+                                <line class="chen-line-rel" x1="940" y1="413" x2="940" y2="480"/>
+                                <line class="chen-line-rel" x1="940" y1="530" x2="940" y2="591"/>
+                                <text class="chen-card-badge" x="952" y="445">1</text>
+                                <text class="chen-card-badge" x="952" y="565">N</text>
+                                <polygon class="chen-rel-diamond" points="940,480 985,505 940,530 895,505"/>
+                                <text class="chen-text-rel" x="940" y="509">QUEUED_IN</text>
+                            </g>
+
+                            <!-- WAITLIST ASSOCIATIVE / QUEUE ENTITY (Double Rect) -->
+                            <g class="chen-subsystem chen-booking" id="node-waitlist">
+                                <!-- Attribute lines -->
+                                <line class="chen-line" x1="890" y1="647" x2="835" y2="695"/>
+                                <line class="chen-line" x1="940" y1="647" x2="940" y2="697"/>
+                                <line class="chen-line" x1="990" y1="647" x2="1035" y2="695"/>
+
+                                <!-- Attributes -->
+                                <g class="chen-attr-pk-group">
+                                    <ellipse class="chen-attr-pk-ellipse" cx="825" cy="710" rx="48" ry="18"/>
+                                    <text class="chen-text-pk" x="825" y="714">WaitlistID</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="940" cy="715" rx="44" ry="18"/>
+                                    <text class="chen-text-attr" x="940" y="719">Position</text>
+                                </g>
+                                <g class="chen-attr-group">
+                                    <ellipse class="chen-attr-ellipse" cx="1040" cy="710" rx="40" ry="18"/>
+                                    <text class="chen-text-attr" x="1040" y="714">Status</text>
+                                </g>
+
+                                <!-- Double Rectangle -->
+                                <g class="chen-associative-group">
+                                    <rect class="chen-associative-outer" x="860" y="591" width="160" height="56" rx="8"/>
+                                    <rect class="chen-associative-inner" x="866" y="597" width="148" height="44" rx="6"/>
+                                    <text class="chen-text-entity" x="940" y="624">WAITLIST</text>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 5: RELATIONAL SCHEMA & 3NF -->
+        <section class="slide" id="slide-5">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-table-cells"></i> 5. Initial Relational Schema & 3NF Verification</h2>
+                    <p class="slide-subtitle">Normalized tables, primary keys, and foreign key integrity constraints</p>
+                </div>
+                <span class="slide-tag">Database Schema</span>
+            </div>
+
+            <div class="content-body">
+                <div class="schema-container">
+                    <div class="table-nav" id="schemaTableNav">
+                        <button class="table-tab-btn active" onclick="showSchemaCode('Train')">
+                            <span><i class="fa-solid fa-table"></i> Train</span>
+                            <span style="font-size:0.7rem; color:var(--text-muted);">PK: TrainID</span>
+                        </button>
+                        <button class="table-tab-btn" onclick="showSchemaCode('Station')">
+                            <span><i class="fa-solid fa-table"></i> Station</span>
+                            <span style="font-size:0.7rem; color:var(--text-muted);">PK: StationID</span>
+                        </button>
+                        <button class="table-tab-btn" onclick="showSchemaCode('Route_Stop')">
+                            <span><i class="fa-solid fa-table"></i> Route_Stop</span>
+                            <span style="font-size:0.7rem; color:var(--accent);">FK: Train, Station</span>
+                        </button>
+                        <button class="table-tab-btn" onclick="showSchemaCode('Journey_Segment')">
+                            <span><i class="fa-solid fa-table"></i> Journey_Segment</span>
+                            <span style="font-size:0.7rem; color:var(--accent);">FK: PNR, Seat, Route</span>
+                        </button>
+                        <button class="table-tab-btn" onclick="showSchemaCode('Booking')">
+                            <span><i class="fa-solid fa-table"></i> Booking</span>
+                            <span style="font-size:0.7rem; color:var(--text-muted);">PK: PNRID</span>
+                        </button>
+                        <button class="table-tab-btn" onclick="showSchemaCode('Waitlist')">
+                            <span><i class="fa-solid fa-table"></i> Waitlist</span>
+                            <span style="font-size:0.7rem; color:var(--amber);">FIFO Queue</span>
+                        </button>
+                    </div>
+
+                    <div class="schema-view-box">
+                        <div id="schemaCodeDisplay" class="code-block">
+                            <!-- Dynamically loaded -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 6: SAMPLE DATA & QUERY SIMULATION -->
+        <section class="slide" id="slide-6">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-database"></i> 6. Sample Live Data & Segment Verification</h2>
+                    <p class="slide-subtitle">Proof of data integrity and non-conflicting segment allocation</p>
+                </div>
+                <span class="slide-tag">Review 1 Verification</span>
+            </div>
+
+            <div class="content-body">
+                <div class="grid-2">
+                    <div class="card" style="padding:16px;">
+                        <h3 style="font-size:0.95rem; color:#38BDF8;"><i class="fa-solid fa-train"></i> Sample Trains & Stops</h3>
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>TrainID</th>
+                                    <th>Train Name</th>
+                                    <th>Stop Sequence</th>
+                                    <th>Station</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span style="color:#FCD34D; font-family:'JetBrains Mono';">101</span></td>
+                                    <td>Rajdhani Express</td>
+                                    <td>1 → 2 → 3</td>
+                                    <td>NDLS → CNB → HWH</td>
+                                </tr>
+                                <tr>
+                                    <td><span style="color:#FCD34D; font-family:'JetBrains Mono';">102</span></td>
+                                    <td>Vande Bharat</td>
+                                    <td>1 → 2</td>
+                                    <td>CSTM → PUNE</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card" style="padding:16px;">
+                        <h3 style="font-size:0.95rem; color:#A5B4FC;"><i class="fa-solid fa-ticket"></i> Active Booking Ledger</h3>
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>PNRID</th>
+                                    <th>Passenger</th>
+                                    <th>Fare</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span style="color:#FCD34D; font-family:'JetBrains Mono';">894321</span></td>
+                                    <td>Aarav Sharma</td>
+                                    <td>₹1,500.00</td>
+                                    <td><span style="background:rgba(16,185,129,0.2); color:#6EE7B7; padding:2px 8px; border-radius:4px; font-weight:600;">CONFIRMED</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span style="color:#FCD34D; font-family:'JetBrains Mono';">894322</span></td>
+                                    <td>Priya Verma</td>
+                                    <td>₹1,200.00</td>
+                                    <td><span style="background:rgba(245,158,11,0.2); color:#FDE68A; padding:2px 8px; border-radius:4px; font-weight:600;">WL #1</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card" style="grid-column: span 2; padding:16px;">
+                        <h3 style="font-size:0.95rem; color:#34D399;"><i class="fa-solid fa-code-fork"></i> Segment-Wise Seat Reservation Instance (Coach B1, Seat 12)</h3>
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>SegmentID</th>
+                                    <th>PNR</th>
+                                    <th>Seat</th>
+                                    <th>Hop Range</th>
+                                    <th>Status</th>
+                                    <th>Validation Logic</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span style="font-family:'JetBrains Mono'; color:#CBD5E1;">SEG-901</span></td>
+                                    <td>894321</td>
+                                    <td>B1-12 (Lower)</td>
+                                    <td>NDLS (Stop 1) → CNB (Stop 2)</td>
+                                    <td><span style="color:#6EE7B7; font-weight:600;">Occupied</span></td>
+                                    <td><span style="color:#94A3B8; font-size:0.75rem;">Locked for Hop 1-2</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span style="font-family:'JetBrains Mono'; color:#CBD5E1;">SEG-902</span></td>
+                                    <td>894355</td>
+                                    <td>B1-12 (Lower)</td>
+                                    <td>CNB (Stop 2) → HWH (Stop 3)</td>
+                                    <td><span style="color:#6EE7B7; font-weight:600;">Occupied</span></td>
+                                    <td><span style="color:#67E8F9; font-size:0.75rem;">Successfully shared on non-overlapping hop!</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SLIDE 7: REVIEW 2 ROADMAP -->
+        <section class="slide" id="slide-7">
+            <div class="slide-header">
+                <div class="slide-title-group">
+                    <h2><i class="fa-solid fa-flag-checkered"></i> 7. Review 1 Conclusion & Review 2 Roadmap</h2>
+                    <p class="slide-subtitle">Ready for DDL execution and advanced backend transaction triggers</p>
+                </div>
+                <span class="slide-tag">Next Milestone</span>
+            </div>
+
+            <div class="content-body">
+                <div class="grid-3" style="margin-bottom: 20px;">
+                    <div class="card">
+                        <div style="color:var(--emerald); font-size:1.8rem; margin-bottom:10px;"><i class="fa-solid fa-circle-check"></i></div>
+                        <h3>Review 1 Completed</h3>
+                        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; font-size:0.85rem; color:var(--text-secondary); margin-top:8px;">
+                            <li>✔ Full Conceptual & Relational Model</li>
+                            <li>✔ 3NF Normalization Complete</li>
+                            <li>✔ MySQL DDL Script Verified</li>
+                            <li>✔ Segment Conflict Engine Defined</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <div style="color:var(--secondary); font-size:1.8rem; margin-bottom:10px;"><i class="fa-solid fa-gears"></i></div>
+                        <h3>Review 2 Goals</h3>
+                        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; font-size:0.85rem; color:var(--text-secondary); margin-top:8px;">
+                            <li>➔ Stored Procedures for Booking Transactions</li>
+                            <li>➔ Automated Triggers for Waitlist Promotion</li>
+                            <li>➔ ACID Isolation Level Verification</li>
+                            <li>➔ Indexing on High-Traffic Query Paths</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <div style="color:var(--primary); font-size:1.8rem; margin-bottom:10px;"><i class="fa-solid fa-laptop-code"></i></div>
+                        <h3>Frontend Integration</h3>
+                        <ul style="list-style:none; display:flex; flex-direction:column; gap:8px; font-size:0.85rem; color:var(--text-secondary); margin-top:8px;">
+                            <li>➔ Interactive Train Search Interface</li>
+                            <li>➔ Visual Coach & Seat Selector Map</li>
+                            <li>➔ Real-Time PNR Status Tracker</li>
+                            <li>➔ Admin Route Stop Editor UI</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="text-align:center; padding:12px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25); border-radius:var(--radius-md);">
+                    <span style="font-weight:700; color:#FFFFFF; font-size:1rem;">Thank you! Questions & Discussion Open.</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Controls Bar -->
+    <nav class="bottom-bar">
+        <button class="nav-btn" onclick="prevSlide()" title="Previous Slide (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
+        <div class="slide-dots" id="slideDots"></div>
+        <div class="slide-counter" id="slideCounter">1 / 8</div>
+        <button class="nav-btn" onclick="nextSlide()" title="Next Slide (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
+    </nav>
+
+    <!-- Presenter Pitch Script Drawer (Toggle with 'P') -->
+    <div class="pitch-drawer" id="pitchDrawer">
+        <div class="pitch-drawer-header">
+            <h4><i class="fa-solid fa-microphone"></i> Presenter Pitch Script — <span id="pitchSlideTitle">Slide 1</span></h4>
+            <button onclick="togglePitchDrawer()" style="background:none; border:none; color:var(--text-secondary); font-size:1.1rem; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="pitch-content" id="pitchContent">
+            "Good morning/afternoon everyone. Today, I am presenting the design and conceptual architecture for our Railway Ticket Reservation and Journey Management System for Review 1."
+        </div>
+    </div>
+
+    <!-- Interactive Entity Data & Script Logic -->
+    <script>
+        // Database Entities Metadata for Interactive ER Diagram Explorer
+        const entitiesData = {
+            'Train': {
+                name: 'Train',
+                category: 'route',
+                type: 'core',
+                icon: 'fa-train',
+                desc: 'Master catalog for trains operating in the network with their unique identifiers and operational train classifications.',
+                attributes: [
+                    { name: 'TrainID', type: 'INT', isPK: true, isFK: false, desc: 'Unique identifier for the train fleet' },
+                    { name: 'Name', type: 'VARCHAR(100)', isPK: false, isFK: false, desc: 'Express or Superfast train service name' },
+                    { name: 'Type', type: 'VARCHAR(50)', isPK: false, isFK: false, desc: 'Type classification (Express, Rajdhani, Shatabdi)' }
+                ],
+                relationships: ['1:N with Route_Stop', '1:N with Schedule', '1:N with Coach']
+            },
+            'Station': {
+                name: 'Station',
+                category: 'route',
+                type: 'core',
+                icon: 'fa-building-columns',
+                desc: 'Master lookup of geographic railway stations with unique station codes and municipal city locations.',
+                attributes: [
+                    { name: 'StationID', type: 'INT', isPK: true, isFK: false, desc: 'Unique Station primary key code' },
+                    { name: 'Name', type: 'VARCHAR(100)', isPK: false, isFK: false, desc: 'Official station name (e.g. NDLS)' },
+                    { name: 'City', type: 'VARCHAR(100)', isPK: false, isFK: false, desc: 'Metropolitan or city region' }
+                ],
+                relationships: ['1:N with Route_Stop']
+            },
+            'Route_Stop': {
+                name: 'Route_Stop',
+                category: 'route',
+                type: 'associative',
+                icon: 'fa-route',
+                desc: 'Associative junction entity resolving M:N between Train and Station with sequence order and timetable offsets.',
+                attributes: [
+                    { name: 'RouteID', type: 'INT', isPK: true, isFK: false, desc: 'Primary key for specific route stop' },
+                    { name: 'TrainID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing Train' },
+                    { name: 'StationID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing Station' },
+                    { name: 'StopSequence', type: 'INT', isPK: false, isFK: false, desc: 'Ordinal sequence number (1, 2, 3...)' },
+                    { name: 'ArrivalTime', type: 'TIME', isPK: false, isFK: false, desc: 'Scheduled arrival timestamp' },
+                    { name: 'DepartureTime', type: 'TIME', isPK: false, isFK: false, desc: 'Scheduled departure timestamp' },
+                    { name: 'Distance', type: 'INT', isPK: false, isFK: false, desc: 'Cumulative distance in kilometers' }
+                ],
+                relationships: ['Links Train & Station', 'Referenced by Journey_Segment']
+            },
+            'Schedule': {
+                name: 'Schedule',
+                category: 'route',
+                type: 'core',
+                icon: 'fa-calendar-days',
+                desc: 'Instance of a specific train running on a particular calendar journey date.',
+                attributes: [
+                    { name: 'ScheduleID', type: 'INT', isPK: true, isFK: false, desc: 'Unique schedule run identifier' },
+                    { name: 'TrainID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing parent Train' },
+                    { name: 'JourneyDate', type: 'DATE', isPK: false, isFK: false, desc: 'Operating departure date' }
+                ],
+                relationships: ['1:N with Journey_Segment', '1:N with Waitlist']
+            },
+            'Coach': {
+                name: 'Coach',
+                category: 'booking',
+                type: 'core',
+                icon: 'fa-cubes-stacked',
+                desc: 'Represents physical bogies / coaches attached to a train (e.g., Sleeper, 3AC, 2AC, Executive).',
+                attributes: [
+                    { name: 'CoachID', type: 'INT', isPK: true, isFK: false, desc: 'Unique coach identifier' },
+                    { name: 'TrainID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing parent Train' },
+                    { name: 'CoachType', type: 'VARCHAR(50)', isPK: false, isFK: false, desc: 'Class type (SL, 3A, 2A, 1A)' },
+                    { name: 'TotalSeats', type: 'INT', isPK: false, isFK: false, desc: 'Total physical berth count (e.g. 72)' }
+                ],
+                relationships: ['1:N with Seat']
+            },
+            'Seat': {
+                name: 'Seat',
+                category: 'booking',
+                type: 'core',
+                icon: 'fa-chair',
+                desc: 'Physical seat numbers within a specific coach with berth positioning (Lower, Middle, Upper, Side).',
+                attributes: [
+                    { name: 'SeatID', type: 'INT', isPK: true, isFK: false, desc: 'Unique seat primary key' },
+                    { name: 'CoachID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing parent Coach' },
+                    { name: 'SeatNumber', type: 'INT', isPK: false, isFK: false, desc: 'Berth index number inside coach' },
+                    { name: 'BerthType', type: 'VARCHAR(50)', isPK: false, isFK: false, desc: 'Berth position (Lower/Upper/Side Lower)' }
+                ],
+                relationships: ['1:N with Journey_Segment']
+            },
+            'Passenger': {
+                name: 'Passenger',
+                category: 'booking',
+                type: 'core',
+                icon: 'fa-user-group',
+                desc: 'Stores traveler biographical profiles, age, and demographic records.',
+                attributes: [
+                    { name: 'PassengerID', type: 'INT', isPK: true, isFK: false, desc: 'Unique traveler identifier' },
+                    { name: 'FirstName', type: 'VARCHAR(50)', isPK: false, isFK: false, desc: 'Given name' },
+                    { name: 'LastName', type: 'VARCHAR(50)', isPK: false, isFK: false, desc: 'Family surname' },
+                    { name: 'Age', type: 'INT', isPK: false, isFK: false, desc: 'Passenger age in years' },
+                    { name: 'Gender', type: 'VARCHAR(10)', isPK: false, isFK: false, desc: 'Gender identification' }
+                ],
+                relationships: ['1:N with Booking']
+            },
+            'Booking': {
+                name: 'Booking',
+                category: 'booking',
+                type: 'core',
+                icon: 'fa-receipt',
+                desc: 'Transaction header storing Passenger PNR, total calculated fare, and overall ticket state.',
+                attributes: [
+                    { name: 'PNRID', type: 'INT', isPK: true, isFK: false, desc: '10-digit Passenger Name Record PK' },
+                    { name: 'PassengerID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing booking Passenger' },
+                    { name: 'BookingDate', type: 'DATE', isPK: false, isFK: false, desc: 'Date of ticket issuance' },
+                    { name: 'TotalFare', type: 'DECIMAL(10,2)', isPK: false, isFK: false, desc: 'Calculated journey price' },
+                    { name: 'Status', type: 'VARCHAR(20)', isPK: false, isFK: false, desc: 'Confirmed / Waitlisted / Cancelled' }
+                ],
+                relationships: ['1:N with Journey_Segment', '1:N with Waitlist', '1:1 with Payment']
+            },
+            'Journey_Segment': {
+                name: 'Journey_Segment',
+                category: 'booking',
+                type: 'associative',
+                icon: 'fa-shield-halved',
+                desc: 'The architectural centerpiece! Links a PNR to a specific Seat for an exact Source-to-Dest Route Stop hop, eliminating seat conflicts.',
+                attributes: [
+                    { name: 'SegmentID', type: 'INT', isPK: true, isFK: false, desc: 'Unique leg allocation PK' },
+                    { name: 'PNRID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing parent Booking PNR' },
+                    { name: 'ScheduleID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing travel Schedule' },
+                    { name: 'SourceRouteID', type: 'INT', isPK: false, isFK: true, desc: 'FK to starting Route_Stop' },
+                    { name: 'DestRouteID', type: 'INT', isPK: false, isFK: true, desc: 'FK to terminating Route_Stop' },
+                    { name: 'SeatID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing assigned Seat' },
+                    { name: 'Status', type: 'VARCHAR(20)', isPK: false, isFK: false, desc: 'Segment status (Booked / Cancelled)' }
+                ],
+                relationships: ['Junction linking PNR, Schedule, Route & Seat']
+            },
+            'Waitlist': {
+                name: 'Waitlist',
+                category: 'finance',
+                type: 'queue',
+                icon: 'fa-list-ol',
+                desc: 'Maintains orderly FIFO position queues for fully booked trains, automatically promoted when cancellations occur.',
+                attributes: [
+                    { name: 'WaitlistID', type: 'INT', isPK: true, isFK: false, desc: 'Queue record primary key' },
+                    { name: 'PNRID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing waitlisted PNR' },
+                    { name: 'ScheduleID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing target Schedule' },
+                    { name: 'Position', type: 'INT', isPK: false, isFK: false, desc: 'Ordinal queue position (WL1, WL2...)' },
+                    { name: 'Status', type: 'VARCHAR(20)', isPK: false, isFK: false, desc: 'Active / Promoted / Expired' }
+                ],
+                relationships: ['FK with Booking & Schedule']
+            },
+            'Payment': {
+                name: 'Payment',
+                category: 'finance',
+                type: 'core',
+                icon: 'fa-credit-card',
+                desc: 'Financial ledger recording transaction amount, payment mode, and audit timestamp for bookings.',
+                attributes: [
+                    { name: 'PaymentID', type: 'INT', isPK: true, isFK: false, desc: 'Unique payment transaction PK' },
+                    { name: 'PNRID', type: 'INT', isPK: false, isFK: true, desc: 'FK referencing booked PNR' },
+                    { name: 'Amount', type: 'DECIMAL(10,2)', isPK: false, isFK: false, desc: 'Payment amount processed' },
+                    { name: 'PaymentDate', type: 'DATE', isPK: false, isFK: false, desc: 'Transaction processing date' },
+                    { name: 'Method', type: 'VARCHAR(50)', isPK: false, isFK: false, desc: 'Payment gateway mode (UPI, Card, NetBanking)' }
+                ],
+                relationships: ['FK to Booking']
+            }
+        };
+
+        // Pitch scripts per slide for the presenter drawer
+        const pitchScripts = [
+            "Good morning/afternoon everyone. Today, I am presenting the design and conceptual relational database architecture for our Railway Ticket Reservation and Journey Management System for Review 1.",
+            "Our main objective is to design a normalized relational database with strict database constraints and automated waitlist logic. Our system serves three distinct actors: Passengers searching and booking seats, Administrators maintaining route schedules, and the Automated Background Engine managing FIFO queue cascades.",
+            "We have identified and resolved two fundamental database problems: First, Data Anomalies and Redundancy—unnormalized storage creates severe insertion, update, and deletion anomalies. We solved this by decomposing our schema into 10 individual atomic entity tables refined up to 3NF with zero transitive dependencies. Second, Monolithic Seat Overlap—locking entire routes blocks intermediate travelers and causes seat collisions. We solved this by introducing the associative JOURNEY_SEGMENT entity to partition journeys into granular station-to-station legs, allowing non-conflicting seat reuse with 100% mathematical integrity.",
+            "Here is our Conceptual ER Explorer. As you can see, we broke down all many-to-many relationships using associative entities. Instead of a direct M:N between Train and Station, we created ROUTE_STOP. Most importantly, to guarantee zero seat clashing, JOURNEY_SEGMENT links a specific Booking to a specific Seat for a specific station hop. You can hover over any entity on this screen to view its complete attributes and primary/foreign keys.",
+            "Here is our Traditional Conceptual E-R Diagram rendered in standard Peter Chen notation. It cleanly maps all 10 system entities in rectangular boxes, with associative junction entities like ROUTE_STOP, JOURNEY_SEGMENT, and WAITLIST rendered with double borders. Relationships are depicted as diamonds with rigorous 1-to-many and 1-to-1 cardinality ratios. Connected ellipses detail all entity attributes, highlighting primary keys with underlined golden notation for referential integrity across the entire railway schema.",
+            "We have converted this architecture into an Initial Relational Schema normalized up to 3NF. Every table has well-defined Primary Keys (like TrainID, StationID, PNRID) and Foreign Keys enforcing referential integrity. Transitive dependencies are eliminated, ensuring zero update or deletion anomalies.",
+            "Here is our sample data simulation demonstrating active records. As demonstrated in our Journey_Segment table, Coach B1 Seat 12 is successfully occupied by Passenger A from Delhi to Kanpur, and by Passenger B from Kanpur to Howrah without any collision.",
+            "In conclusion, our Review 1 conceptual design and SQL DDL architecture are complete and verified. For Review 2, we will proceed with writing MySQL Stored Procedures, ACID transaction triggers, automated waitlist promotion cascades, and connecting it to our web interface. Thank you!"
+        ];
+
+        // SQL DDL snippets per table
+        const sqlSnippets = {
+            'Train': `<span class="sql-kw">CREATE TABLE</span> <span class="sql-tbl">Train</span> (\n    <span class="sql-col">TrainID</span> <span class="sql-type">INT PRIMARY KEY</span>,\n    <span class="sql-col">Name</span> <span class="sql-type">VARCHAR(100) NOT NULL</span>,\n    <span class="sql-col">Type</span> <span class="sql-type">VARCHAR(50)</span>\n);`,
+            'Station': `<span class="sql-kw">CREATE TABLE</span> <span class="sql-tbl">Station</span> (\n    <span class="sql-col">StationID</span> <span class="sql-type">INT PRIMARY KEY</span>,\n    <span class="sql-col">Name</span> <span class="sql-type">VARCHAR(100) NOT NULL</span>,\n    <span class="sql-col">City</span> <span class="sql-type">VARCHAR(100)</span>\n);`,
+            'Route_Stop': `<span class="sql-kw">CREATE TABLE</span> <span class="sql-tbl">Route_Stop</span> (\n    <span class="sql-col">RouteID</span> <span class="sql-type">INT PRIMARY KEY</span>,\n    <span class="sql-col">TrainID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">StationID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">StopSequence</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">ArrivalTime</span> <span class="sql-type">TIME</span>,\n    <span class="sql-col">DepartureTime</span> <span class="sql-type">TIME</span>,\n    <span class="sql-col">Distance</span> <span class="sql-type">INT</span>,\n    <span class="sql-kw">FOREIGN KEY</span> (<span class="sql-col">TrainID</span>) <span class="sql-kw">REFERENCES</span> <span class="sql-tbl">Train</span>(<span class="sql-col">TrainID</span>),\n    <span class="sql-kw">FOREIGN KEY</span> (<span class="sql-col">StationID</span>) <span class="sql-kw">REFERENCES</span> <span class="sql-tbl">Station</span>(<span class="sql-col">StationID</span>)\n);`,
+            'Journey_Segment': `<span class="sql-kw">CREATE TABLE</span> <span class="sql-tbl">Journey_Segment</span> (\n    <span class="sql-col">SegmentID</span> <span class="sql-type">INT PRIMARY KEY</span>,\n    <span class="sql-col">PNRID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">ScheduleID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">SourceRouteID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">DestRouteID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">SeatID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">Status</span> <span class="sql-type">VARCHAR(20)</span>,\n    <span class="sql-kw">FOREIGN KEY</span> (<span class="sql-col">PNRID</span>) <span class="sql-kw">REFERENCES</span> <span class="sql-tbl">Booking</span>(<span class="sql-col">PNRID</span>),\n    <span class="sql-kw">FOREIGN KEY</span> (<span class="sql-col">SeatID</span>) <span class="sql-kw">REFERENCES</span> <span class="sql-tbl">Seat</span>(<span class="sql-col">SeatID</span>)\n);`,
+            'Booking': `<span class="sql-kw">CREATE TABLE</span> <span class="sql-tbl">Booking</span> (\n    <span class="sql-col">PNRID</span> <span class="sql-type">INT PRIMARY KEY</span>,\n    <span class="sql-col">PassengerID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">BookingDate</span> <span class="sql-type">DATE</span>,\n    <span class="sql-col">TotalFare</span> <span class="sql-type">DECIMAL(10,2)</span>,\n    <span class="sql-col">Status</span> <span class="sql-type">VARCHAR(20)</span>,\n    <span class="sql-kw">FOREIGN KEY</span> (<span class="sql-col">PassengerID</span>) <span class="sql-kw">REFERENCES</span> <span class="sql-tbl">Passenger</span>(<span class="sql-col">PassengerID</span>)\n);`,
+            'Waitlist': `<span class="sql-kw">CREATE TABLE</span> <span class="sql-tbl">Waitlist</span> (\n    <span class="sql-col">WaitlistID</span> <span class="sql-type">INT PRIMARY KEY</span>,\n    <span class="sql-col">PNRID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">ScheduleID</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">Position</span> <span class="sql-type">INT</span>,\n    <span class="sql-col">Status</span> <span class="sql-type">VARCHAR(20)</span>,\n    <span class="sql-kw">FOREIGN KEY</span> (<span class="sql-col">PNRID</span>) <span class="sql-kw">REFERENCES</span> <span class="sql-tbl">Booking</span>(<span class="sql-col">PNRID</span>)\n);`
+        };
+
+        // Slide State Management
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const dotsContainer = document.getElementById('slideDots');
+        const slideCounter = document.getElementById('slideCounter');
+        let selectedEntityKey = 'Train';
+
+        // Generate slide dots
+        slides.forEach((_, idx) => {
+            const dot = document.createElement('div');
+            dot.className = `dot ${idx === 0 ? 'active' : ''}`;
+            dot.onclick = () => goToSlide(idx);
+            dotsContainer.appendChild(dot);
+        });
+
+        function updateSlideUI() {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('active', idx === currentSlideIndex);
+            });
+            document.querySelectorAll('.dot').forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === currentSlideIndex);
+            });
+            slideCounter.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+
+            // Update Pitch Drawer Text
+            document.getElementById('pitchSlideTitle').textContent = `Slide ${currentSlideIndex + 1}`;
+            document.getElementById('pitchContent').textContent = pitchScripts[currentSlideIndex] || '';
+        }
+
+        function nextSlide() {
+            if (currentSlideIndex < slides.length - 1) {
+                currentSlideIndex++;
+                updateSlideUI();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                updateSlideUI();
+            }
+        }
+
+        function goToSlide(index) {
+            currentSlideIndex = index;
+            updateSlideUI();
+        }
+
+        // Keyboard Navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key.toLowerCase() === 'p') {
+                togglePitchDrawer();
+            } else if (e.key.toLowerCase() === 'f') {
+                toggleFullScreen();
+            }
+        });
+
+        // Toggle Pitch Notes Drawer
+        function togglePitchDrawer() {
+            document.getElementById('pitchDrawer').classList.toggle('open');
+        }
+
+        // Fullscreen Toggle
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        // -------------------------------------------------------------
+        // INTERACTIVE ER DIAGRAM RENDERER & INSPECTOR LOGIC (Slide 4)
+        // -------------------------------------------------------------
+        function renderERNodes(filter = 'all') {
+            const grid = document.getElementById('erNodesGrid');
+            grid.innerHTML = '';
+
+            Object.keys(entitiesData).forEach(key => {
+                const item = entitiesData[key];
+                if (filter !== 'all' && item.category !== filter) return;
+
+                const node = document.createElement('div');
+                const isSelected = key === selectedEntityKey;
+                const isAssociative = item.type === 'associative';
+                const isQueue = item.type === 'queue';
+
+                node.className = `er-node ${isSelected ? 'selected' : ''} ${isAssociative ? 'associative' : ''}`;
+                node.id = `er-node-${key}`;
+
+                const tagClass = isAssociative ? 'tag-junction' : (isQueue ? 'tag-queue' : 'tag-core');
+                const tagLabel = isAssociative ? 'M:N Junction' : (isQueue ? 'Queue' : 'Entity');
+
+                const pkAttr = item.attributes.find(a => a.isPK)?.name || 'ID';
+                const fkCount = item.attributes.filter(a => a.isFK).length;
+
+                node.innerHTML = `
+                    <div class="er-node-header">
+                        <div class="er-node-name">
+                            <i class="fa-solid ${item.icon}"></i>
+                            <span>${item.name}</span>
+                        </div>
+                        <span class="er-node-tag ${tagClass}">${tagLabel}</span>
+                    </div>
+                    <div class="er-node-keys-preview">
+                        <span class="er-key-badge pk"><i class="fa-solid fa-key"></i> ${pkAttr}</span>
+                        ${fkCount > 0 ? `<span class="er-key-badge"><i class="fa-solid fa-link"></i> ${fkCount} FKs</span>` : ''}
+                    </div>
+                    <div class="er-node-hint">
+                        <span>${item.attributes.length} attributes</span>
+                        <i class="fa-solid fa-arrow-pointer" style="font-size:0.65rem;"></i>
+                    </div>
+                `;
+
+                // Hover and click interaction
+                node.addEventListener('mouseenter', () => inspectEntity(key));
+                node.addEventListener('click', () => {
+                    selectedEntityKey = key;
+                    inspectEntity(key);
+                    document.querySelectorAll('.er-node').forEach(n => n.classList.remove('selected'));
+                    node.classList.add('selected');
+                });
+
+                grid.appendChild(node);
+            });
+        }
+
+        function inspectEntity(entityKey) {
+            const entity = entitiesData[entityKey];
+            if (!entity) return;
+
+            document.getElementById('selectedEntityStatus').textContent = `Inspecting: ${entity.name.toUpperCase()}`;
+            document.getElementById('inspectorTitle').innerHTML = `<i class="fa-solid ${entity.icon}" style="color:var(--secondary);"></i> ${entity.name}`;
+            document.getElementById('inspectorDesc').textContent = entity.desc;
+
+            // Render Attributes
+            const attrList = document.getElementById('attributesList');
+            attrList.innerHTML = '';
+
+            entity.attributes.forEach(attr => {
+                const row = document.createElement('div');
+                row.className = 'attribute-row fade-in';
+
+                let badgeHtml = '';
+                if (attr.isPK) {
+                    badgeHtml = '<span class="attr-badge badge-pk">PK</span>';
+                } else if (attr.isFK) {
+                    badgeHtml = '<span class="attr-badge badge-fk">FK</span>';
+                }
+
+                row.innerHTML = `
+                    <div class="attr-main">
+                        <div class="attr-name">
+                            ${attr.isPK ? '<i class="fa-solid fa-key" style="color:#F59E0B; font-size:0.7rem;"></i>' : (attr.isFK ? '<i class="fa-solid fa-link" style="color:#6366F1; font-size:0.7rem;"></i>' : '<i class="fa-solid fa-circle" style="color:rgba(255,255,255,0.2); font-size:0.45rem;"></i>')}
+                            <span>${attr.name}</span>
+                            ${badgeHtml}
+                        </div>
+                        <span class="attr-type">${attr.type}</span>
+                    </div>
+                    <div class="attr-detail">${attr.desc}</div>
+                `;
+                attrList.appendChild(row);
+            });
+
+            // Render Relationships
+            const relList = document.getElementById('relationshipsList');
+            relList.innerHTML = '';
+            entity.relationships.forEach(rel => {
+                const chip = document.createElement('span');
+                chip.className = 'rel-chip';
+                chip.innerHTML = `<i class="fa-solid fa-diagram-project"></i> ${rel}`;
+                relList.appendChild(chip);
+            });
+        }
+
+        function filterEntities(category) {
+            document.querySelectorAll('.er-filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderERNodes(category);
+        }
+
+        // -------------------------------------------------------------
+        // TRADITIONAL CHEN ER DIAGRAM INTERACTIONS (Slide 5)
+        // -------------------------------------------------------------
+        let erScale = 1;
+        let erPanX = 0;
+        let erPanY = 0;
+        let isErPanning = false;
+        let erStartX = 0;
+        let erStartY = 0;
+
+        function updateErTransform() {
+            const canvas = document.getElementById('erSvgCanvas');
+            if (canvas) {
+                canvas.style.transform = `translate(${erPanX}px, ${erPanY}px) scale(${erScale})`;
+            }
+        }
+
+        function zoomTraditionalER(delta) {
+            erScale = Math.min(Math.max(0.6, erScale + delta), 2.5);
+            updateErTransform();
+        }
+
+        function resetTraditionalER() {
+            erScale = 1;
+            erPanX = 0;
+            erPanY = 0;
+            updateErTransform();
+            filterTraditionalER('all');
+        }
+
+        function startErPan(e) {
+            if (e.button !== 0) return; // Left click only
+            isErPanning = true;
+            erStartX = e.clientX - erPanX;
+            erStartY = e.clientY - erPanY;
+        }
+
+        function doErPan(e) {
+            if (!isErPanning) return;
+            erPanX = e.clientX - erStartX;
+            erPanY = e.clientY - erStartY;
+            updateErTransform();
+        }
+
+        function endErPan() {
+            isErPanning = false;
+        }
+
+        function handleErWheel(e) {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.1 : -0.1;
+            zoomTraditionalER(delta);
+        }
+
+        function filterTraditionalER(subsystem) {
+            // Update active state on toolbar buttons
+            document.querySelectorAll('#slide-4 .er-ctrl-btn').forEach(btn => {
+                if (btn.id && btn.id.startsWith('btn-subsystem-')) {
+                    btn.classList.toggle('active', btn.id === `btn-subsystem-${subsystem}`);
+                }
+            });
+
+            const allGroups = document.querySelectorAll('.chen-subsystem');
+            const hulls = {
+                'route': document.getElementById('hull-route'),
+                'seat': document.getElementById('hull-seat'),
+                'booking': document.getElementById('hull-booking')
+            };
+
+            if (subsystem === 'all') {
+                allGroups.forEach(g => g.classList.remove('faded-node'));
+                Object.values(hulls).forEach(h => {
+                    if (h) {
+                        h.style.opacity = '0.25';
+                        h.style.filter = 'none';
+                    }
+                });
+            } else {
+                allGroups.forEach(g => {
+                    if (g.classList.contains(`chen-${subsystem}`)) {
+                        g.classList.remove('faded-node');
+                    } else {
+                        g.classList.add('faded-node');
+                    }
+                });
+
+                Object.keys(hulls).forEach(key => {
+                    if (hulls[key]) {
+                        if (key === subsystem) {
+                            hulls[key].style.opacity = '0.85';
+                            hulls[key].style.filter = 'url(#glowSubsystem)';
+                        } else {
+                            hulls[key].style.opacity = '0.08';
+                            hulls[key].style.filter = 'none';
+                        }
+                    }
+                });
+            }
+        }
+
+        // -------------------------------------------------------------
+        // SCHEMA CODE SWITCHER (Slide 6)
+        // -------------------------------------------------------------
+        function showSchemaCode(tableName) {
+            document.querySelectorAll('.table-tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            const codeDisplay = document.getElementById('schemaCodeDisplay');
+            codeDisplay.innerHTML = sqlSnippets[tableName] || '// DDL Schema Definition';
+        }
+
+        // Initialize on load
+        renderERNodes('all');
+        inspectEntity('Train');
+        showSchemaCode('Train');
+        updateSlideUI();
+    </script>
+</body>
+
+</html>

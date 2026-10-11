@@ -1,0 +1,230 @@
+===================================================================
+REVIEW 3 — FINAL PRESENTATION SCRIPT
+Railway Ticket Reservation & Journey Management System — DBMS Project 17
+(Follows the live app.html prototype screen-by-screen, in nav order)
+===================================================================
+Target: ~10 min talk + live walkthrough on http://127.0.0.1:5000/
+
+-------------------------------------------------------------------
+0. OPENING LINE (say this first, on the Dashboard screen)
+-------------------------------------------------------------------
+"Good [morning/afternoon]. This is our Review 3 final demonstration —
+the Railway Ticket Reservation & Journey Management System, DBMS
+Project 17. Everything you're about to see runs live: Python Flask on
+the backend, MySQL on the database, and this dashboard talking to both
+over a real REST API — no hardcoded data, no simulation."
+
+-------------------------------------------------------------------
+1. INTRODUCTION — DASHBOARD SCREEN (45 sec)
+-------------------------------------------------------------------
+(Stay on Dashboard Overview)
+"This is the Dashboard. Up top: Total Bookings, Confirmed, Waitlisted,
+and Revenue — these four numbers are live KPIs pulled straight from the
+database, not placeholders. Below that, Recent Bookings shows the
+latest PNR transactions, and Train Occupancy Rate shows seat
+utilization per train. At the bottom is our System Transaction Log —
+a real-time feed of SQL and trigger activity, so every action we take
+today will actually echo here as it happens against the database."
+
+(Point to Quick Stats row)
+"These quick stats — Active Trains, Stations, Passengers, Schedules —
+confirm this is a populated, working database, not an empty shell."
+
+-------------------------------------------------------------------
+2. PROBLEM STATEMENT (60-75 sec)
+-------------------------------------------------------------------
+"Before going further — why is this a hard database problem, not a
+simple 'book a seat' app?
+
+1. The SAME seat can be sold to multiple passengers on the same train
+   and date, as long as their station-to-station segments don't
+   overlap — e.g. Delhi→Kanpur and Kanpur→Patna on the same seat. A
+   plain booked/not-booked flag can't model that; we need segment-
+   level, interval-overlap logic.
+2. When no compatible seat is free, the passenger is waitlisted FIFO —
+   but the system still has to remember which class and which route
+   they wanted, so promotion later assigns the right seat, not just any
+   seat.
+3. Refunds are tiered by how close to departure you cancel, and the
+   refund actually paid must be stored permanently — not re-guessed
+   later from a clock that has since moved on.
+4. Deleting a train, station, or passenger that already has booking
+   history must be blocked with a clear error, never silently
+   cascaded away.
+5. Two passengers requesting the same seat-segment at the same instant
+   must not both succeed.
+6. And the final deliverable has to be a real application doing real
+   CRUD and search against a live database — not a UI simulating
+   itself with in-memory JavaScript arrays, which is exactly what
+   Review 3 replaces."
+
+-------------------------------------------------------------------
+3. SOLUTION / ARCHITECTURE (45 sec)
+-------------------------------------------------------------------
+"Our solution is three layers: a MySQL database (RailwayReservationDB)
+with 11 normalized tables — Station, Train, Route_Stop, Schedule,
+Coach, Seat, Passenger, Booking, Journey_Segment, Waitlist, Payment —
+all in 3NF with primary keys, foreign keys, unique, check and default
+constraints, plus indexes on the columns we search by most.
+
+In the middle, a Python Flask backend: app.py exposes the REST API,
+and booking_service.py holds all the business logic — search, segment-
+aware seat allocation, fare calculation, cancellation, and promotion.
+
+On top, this same UI you're looking at — unchanged pixel-for-pixel from
+earlier reviews — but its JavaScript now calls real API endpoints
+instead of reading a mock array.
+
+The core rule — no overlapping seat segments — is enforced twice: once
+in booking_service.py during the booking transaction, and again as a
+database trigger, trg_prevent_seat_segment_overlap, as a safety net."
+
+-------------------------------------------------------------------
+4. LIVE WALKTHROUGH — SCREEN BY SCREEN (follow the left nav, top to bottom)
+-------------------------------------------------------------------
+
+### 4.1 TRAIN SEARCH  (nav: "Train Search")
+"Let's search. From Station, To Station, a Journey Date, and
+optionally a Coach Class — I'll search [e.g. New Delhi to Patna]."
+-> Click Search
+"This result isn't a simple seat count — the backend checks real
+segment overlap for every seat, on every coach, of every matching
+schedule. What's shown here is genuine, live availability."
+
+### 4.2 BOOK TICKET  (nav: "Book Ticket")
+"Now let's reserve a ticket. On the left: Passenger & Journey Details
+— First Name, Last Name, Age, Gender, Journey Date, then Train, Coach
+Class, From/To Station, and Payment Method. On the right, watch the
+Fare Preview and Seat Availability panels update live as I fill this
+in."
+-> Fill the form, select Train/Coach/From/To
+"Notice the Fare Preview recalculates instantly — that's the same
+fare engine we'll see again in the Fare Calculator, so pricing is
+always consistent across the whole app."
+-> Click "Confirm Booking & Generate PNR"
+"Behind this one click: the backend opens a transaction, computes the
+fare server-side, finds a segment-compatible free seat using the same
+overlap logic as the database trigger, inserts the Passenger, Booking,
+Journey_Segment, and Payment rows, and commits — generating a real
+PNR. If no seat is free, it automatically falls back to the waitlist
+instead of failing."
+
+### 4.3 VALIDATION / ERROR HANDLING (do this right here, on Book Ticket)
+"Let's deliberately break it — I'll leave a required field empty / use
+an invalid age / book a seat-segment that's already taken."
+-> Submit
+"This is not a silent failure or a browser alert — it's a proper HTTP
+error surfaced through our toast/terminal log: 400 for bad input, 404
+for a record that doesn't exist, 409 for a real conflict like a
+double-booked segment. The form also pre-validates on the client for
+instant feedback, but the server is the final authority."
+
+### 4.4 ALL BOOKINGS  (nav: "All Bookings")
+"Here's the full PNR register — passenger, train/route, date, coach,
+fare, and status for every booking, with actions per row. This table
+is read live from the Booking table via a join, so anything we just
+created appears here immediately."
+
+### 4.5 WAITLIST QUEUE  (nav: "Waitlist Queue")
+"This is the FIFO waitlist per schedule. Each entry remembers exactly
+which class and route the passenger wanted. I can promote one manually,
+or click 'Run Promotion Engine' to sweep and promote everyone eligible
+at once."
+-> Click Run Promotion Engine
+"Watch the Promotion Engine Log — this is the auto-cascade trigger
+activity, and the stats panel — Total WL entries, Promoted today, WL
+Clearance Rate — update in real time."
+
+### 4.6 CANCELLATION  (nav: "Cancellation")
+"I'll cancel an existing ticket by PNR."
+-> Enter PNR -> click Preview
+"Preview shows exactly what will be refunded before we commit to
+anything — per our Cancellation Policy panel: over 48 hours before
+departure, 90% refund; 24 to 48 hours, 75%; under 24 hours, 50%; a
+waitlisted ticket, 100%, since no seat was ever used."
+-> Click Confirm Cancel
+"Watch the ACID Transaction Log — this cancellation is a full rollback-
+safe transaction, and if a seat just freed up, it immediately triggers
+auto-promotion of the next waitlisted passenger in that queue. The
+Cancelled Records table below records the PNR, passenger, fare, and
+the exact refund amount — stored permanently, not recalculated later."
+
+### 4.7 FARE CALCULATOR  (nav: "Fare Calculator")
+"This is a standalone fare lookup using the identical formula as
+booking: Train, From/To Station, Coach Class, Passenger Age, and
+Quota — General, Senior Citizen, Ladies, or Tatkal."
+-> Pick values -> Calculate Fare
+"The breakdown shows base fare, plus distance, plus class multiplier,
+plus quota/senior concession or Tatkal surcharge, plus GST — the exact
+same engine used during booking, so quoted and charged fares never
+disagree."
+
+### 4.8 CRUD MANAGER  (nav: "CRUD Manager")
+"This is where we manage master data directly: Trains, Stations,
+Passengers, and Schedules, as tabs. I can Add a new record—"
+-> Click Add Record, fill it, save
+"—Edit an existing one, or Delete one."
+-> Attempt to delete a Train/Station/Passenger that has booking history
+"This delete is blocked — a 409 Conflict with a clear message — on
+purpose. Our foreign keys use ON DELETE RESTRICT, not CASCADE, so
+historical booking data can never be silently wiped out by deleting
+its parent record."
+
+### 4.9 ANALYTICS & REPORTS  (nav: "Analytics Report")
+"Finally, Reports. Total Revenue, Confirmation Rate, WL Clear Rate, and
+Cancellation Rate up top — then Revenue by Train and Booking Status
+Distribution charts below, and further down [scroll] occupancy and
+segment-ledger detail. Every number here is a real SQL join or
+aggregate against live data — I'll hit Refresh to prove it's not
+cached."
+-> Click Refresh
+
+-------------------------------------------------------------------
+5. TESTING (20 sec)
+-------------------------------------------------------------------
+"All of this is also covered by an automated black-box test suite,
+tests/test_api.py, which exercises search, booking, cancellation,
+waitlist promotion, and the validation/error paths end-to-end against
+the running server and live database — so this isn't just a demo that
+happens to work once, it's been tested."
+
+-------------------------------------------------------------------
+6. CLOSING (20 sec)
+-------------------------------------------------------------------
+"To summarize: across three reviews we went from a conceptual ER model
+and a 3NF schema, to a fully constrained database with a trigger and a
+query library, to today — a working Flask application on live MySQL,
+doing real search, booking, waitlist promotion, cancellation with
+tiered refunds, consistent fare calculation, protected CRUD, and live
+analytics, all backed by automated tests. Thank you — happy to take
+questions."
+
+-------------------------------------------------------------------
+7. ANTICIPATED QUESTIONS — QUICK ANSWERS
+-------------------------------------------------------------------
+Q: Why ON DELETE RESTRICT instead of CASCADE?
+A: Cascade would silently destroy booking/payment history when a train
+   or passenger is deleted. RESTRICT blocks it with a 409 instead.
+
+Q: How do you stop two people double-booking the same seat-segment at
+   once?
+A: The booking transaction checks-then-inserts inside one transaction,
+   and the trigger re-validates at insert time as a second line of
+   defense. (Noted limitation: a SELECT ... FOR UPDATE row lock would
+   close the remaining tiny race window further under very high
+   concurrency — documented as future work, not hidden.)
+
+Q: Where exactly is "no overlapping segments" enforced?
+A: Twice — in backend/booking_service.py during the booking logic, and
+   again in the database via trg_prevent_seat_segment_overlap.
+
+Q: Is the UI just a redesigned mock?
+A: No — app.html is visually the same as earlier reviews, but every
+   button now calls a real Flask API endpoint backed by live MySQL.
+   Every search, booking, cancellation, and report shown is a genuine
+   database operation.
+
+Q: What happens to a waitlisted passenger's seat class/route preference?
+A: It's stored on the Waitlist row itself (requested coach, source and
+   destination route stop), so promotion later assigns exactly what
+   they originally asked for, not an arbitrary seat.
