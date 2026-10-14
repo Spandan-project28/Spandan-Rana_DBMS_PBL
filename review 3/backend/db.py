@@ -8,7 +8,7 @@ import config
 
 _pool = pooling.MySQLConnectionPool(
     pool_name="railway_pool",
-    pool_size=8,
+    pool_size=3,
     host=config.DB_HOST,
     port=config.DB_PORT,
     user=config.DB_USER,
